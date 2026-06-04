@@ -15,7 +15,11 @@ from .serializers import (
 from .models import Hospital
 from .serializers import DoctorProfileSerializer
 from rest_framework.permissions import IsAdminUser
-
+from .models import Hospital, Doctor
+from django.contrib.auth import get_user_model
+from appointments.models import Appointment
+from django.utils import timezone
+import datetime
 
 User = get_user_model()
 
@@ -198,26 +202,148 @@ class DoctorRegisterView(generics.CreateAPIView):
 
 
 # ===================== ADMIN — Stats globales =====================
+# ===================== ADMIN — Stats globales =====================
 class AdminStatsView(APIView):
     permission_classes = [permissions.IsAuthenticated, IsAdminUser]
 
     def get(self, request):
-        from .models import Hospital, Doctor
-        from django.contrib.auth import get_user_model
-        User = get_user_model()
+        
 
-        total_hospitals = Hospital.objects.count()
-        active_hospitals = Hospital.objects.filter(user__is_active=True, is_verified=True).count()
+        User = get_user_model()
+        today = datetime.date.today()
+        now = timezone.now()
+
+        # ---- Compteurs principaux ----
+        total_hospitals   = Hospital.objects.count()
+        active_hospitals  = Hospital.objects.filter(user__is_active=True, is_verified=True).count()
         pending_hospitals = Hospital.objects.filter(user__is_active=False).count()
-        total_doctors = Doctor.objects.count()
-        total_patients = User.objects.filter(role='patient').count()
+        total_doctors     = Doctor.objects.count()
+        total_patients    = User.objects.filter(role='patient').count()
+
+        # ---- Compteurs RDV ----
+        total_appointments   = Appointment.objects.count()
+        today_appointments   = Appointment.objects.filter(date=today).count()
+        pending_appointments = Appointment.objects.filter(status='pending').count()
+
+        # ---- Activités récentes (20 derniers RDV toutes actions confondues) ----
+        recent_rdv = Appointment.objects.select_related(
+            'patient', 'doctor__user'
+        ).order_by('-created_at')[:10]
+
+        recent_activities = []
+        for rdv in recent_rdv:
+            patient_name = f"{rdv.patient.first_name} {rdv.patient.last_name}"
+            doctor_name  = (
+                f"Dr. {rdv.doctor.user.first_name} {rdv.doctor.user.last_name}"
+                if rdv.doctor else rdv.doctor_name or 'Médecin inconnu'
+            )
+            # Calcul du temps écoulé
+            delta = now - rdv.created_at
+            if delta.days > 0:
+                time_str = f"Il y a {delta.days}j"
+            elif delta.seconds >= 3600:
+                time_str = f"Il y a {delta.seconds // 3600}h"
+            else:
+                time_str = f"Il y a {delta.seconds // 60} min"
+
+            status_labels = {
+                'pending':   'En attente',
+                'confirmed': 'Confirmé',
+                'cancelled': 'Annulé',
+                'completed': 'Terminé',
+            }
+
+            recent_activities.append({
+                'id':      rdv.id,
+                'type':    'appointment',
+                'message': f"RDV {status_labels.get(rdv.status, rdv.status)} — {patient_name} avec {doctor_name}",
+                'time':    time_str,
+                'status':  rdv.status,
+            })
+
+        # Ajouter les hôpitaux récemment inscrits
+        recent_hospitals = Hospital.objects.select_related('user').order_by('-created_at')[:5]
+        for h in recent_hospitals:
+            delta = now - h.created_at
+            if delta.days > 0:
+                time_str = f"Il y a {delta.days}j"
+            elif delta.seconds >= 3600:
+                time_str = f"Il y a {delta.seconds // 3600}h"
+            else:
+                time_str = f"Il y a {delta.seconds // 60} min"
+
+            recent_activities.append({
+                'id':      f"h-{h.id}",
+                'type':    'hospital',
+                'message': f"Nouvel hôpital inscrit — {h.name} ({h.city})",
+                'time':    time_str,
+                'status':  'verified' if h.is_verified else 'pending',
+            })
+
+        # Trier par ordre chronologique (les plus récents d'abord)
+        # On garde les 10 premières activités
+        recent_activities = recent_activities[:10]
+
+        # ---- Alertes système ----
+        alerts = []
+
+        # Hôpitaux en attente de validation
+        if pending_hospitals > 0:
+            alerts.append({
+                'id':      'pending-hospitals',
+                'level':   'warning',
+                'message': f"{pending_hospitals} hôpital(ux) en attente de validation",
+                'action':  'Voir les hôpitaux',
+                'link':    '/admin/hopitaux',
+            })
+
+        # RDV en attente depuis plus de 24h
+        if pending_appointments > 5:
+            alerts.append({
+                'id':      'pending-appointments',
+                'level':   'warning',
+                'message': f"{pending_appointments} rendez-vous en attente de confirmation",
+                'action':  'Voir les RDV',
+                'link':    '/admin/rendez-vous',
+            })
+
+        # Médecins non vérifiés
+        unverified_doctors = Doctor.objects.filter(is_verified=False).count()
+        if unverified_doctors > 0:
+            alerts.append({
+                'id':      'unverified-doctors',
+                'level':   'info',
+                'message': f"{unverified_doctors} médecin(s) non encore vérifié(s)",
+                'action':  'Voir les médecins',
+                'link':    '/admin/medecins',
+            })
+
+        # ---- Santé système ----
+        # Logique simple : critique si beaucoup d'éléments en attente
+        if pending_hospitals > 5 or pending_appointments > 20:
+            system_health = 'critical'
+        elif pending_hospitals > 0 or pending_appointments > 5:
+            system_health = 'warning'
+        else:
+            system_health = 'good'
 
         return Response({
-            'total_hospitals': total_hospitals,
-            'active_hospitals': active_hospitals,
-            'pending_hospitals': pending_hospitals,
-            'total_doctors': total_doctors,
-            'total_patients': total_patients,
+            # Compteurs existants
+            'total_hospitals':    total_hospitals,
+            'active_hospitals':   active_hospitals,
+            'pending_hospitals':  pending_hospitals,
+            'total_doctors':      total_doctors,
+            'total_patients':     total_patients,
+
+            # Nouveaux compteurs
+            'total_appointments':   total_appointments,
+            'today_appointments':   today_appointments,
+            'pending_appointments': pending_appointments,
+
+            # Activités et alertes
+            'recent_activities': recent_activities,
+            'system_alerts':     alerts,
+            'system_health':     system_health,
         })
 
 
@@ -324,3 +450,26 @@ class PublicHospitalDetailView(generics.RetrieveAPIView):
     serializer_class = HospitalProfileSerializer
     permission_classes = [permissions.AllowAny]
     queryset = Hospital.objects.filter(is_verified=True, user__is_active=True)
+
+
+# Vue pour récupérer tous les RDV de l'hôpital connecté
+class HospitalAppointmentsView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        try:
+            hospital = request.user.hospital
+        except Exception:
+            return Response({'error': 'Profil hôpital introuvable'}, status=403)
+
+        from appointments.models import Appointment
+        from appointments.serializers import AppointmentSerializer
+
+        # RDV de tous les médecins de cet hôpital
+        appointments = Appointment.objects.filter(
+            doctor__hospital=hospital
+        ).select_related('patient', 'doctor__user').order_by('-date', '-time')
+
+        from appointments.serializers import AppointmentSerializer
+        serializer = AppointmentSerializer(appointments, many=True)
+        return Response(serializer.data)

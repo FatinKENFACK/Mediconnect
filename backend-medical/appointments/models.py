@@ -135,9 +135,48 @@ class PrescriptionItem(models.Model):
         on_delete=models.CASCADE,
         related_name='items'
     )
-    nom = models.CharField(max_length=200)        # Nom du médicament
-    posologie = models.CharField(max_length=200)  # Ex: 1 comprimé matin et soir
-    duree = models.CharField(max_length=100)      # Ex: 7 jours
+    nom = models.CharField(max_length=200)        
+    posologie = models.CharField(max_length=200) 
+    duree = models.CharField(max_length=100)      
 
     def __str__(self):
         return f"{self.nom} — {self.posologie}"
+
+    
+# ============================================================
+# MODÈLE : Compte-rendu médical
+# ============================================================
+class CompteRendu(models.Model):
+    TYPE_CHOICES = [
+        ('consultation', 'Consultation de routine'),
+        ('suivi', 'Consultation de suivi'),
+        ('urgence', 'Urgence'),
+        ('visite', 'Visite à domicile'),
+        ('teleconsultation', 'Téléconsultation'),
+    ]
+
+    doctor = models.ForeignKey(
+        'accounts.Doctor',
+        on_delete=models.CASCADE,
+        related_name='comptes_rendus'
+    )
+    patient = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='comptes_rendus'
+    )
+    date = models.DateField()
+    type = models.CharField(max_length=20, choices=TYPE_CHOICES, default='consultation')
+    motif = models.CharField(max_length=255)
+    observations = models.TextField(blank=True)
+    diagnostic = models.CharField(max_length=255, blank=True)
+    traitement = models.TextField(blank=True)
+    recommandations = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-date', '-created_at']
+
+    def __str__(self):
+        return f"CR #{self.id} — {self.patient.first_name} {self.patient.last_name} — {self.date}"

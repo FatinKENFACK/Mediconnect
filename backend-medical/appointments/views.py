@@ -295,3 +295,79 @@ class DoctorPatientsListView(APIView):
         patients = User.objects.filter(id__in=patient_ids)
         data = [{'id': p.id, 'name': f"{p.first_name} {p.last_name}"} for p in patients]
         return Response(data)
+    
+from .models import Appointment, DoctorAvailability, Prescription, PrescriptionItem, CompteRendu
+from .serializers import (
+    AppointmentSerializer, DoctorAvailabilitySerializer,
+    PrescriptionSerializer, CompteRenduSerializer
+)
+
+# -------- COMPTES-RENDUS --------
+
+class CompteRenduListCreateView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_doctor(self, request):
+        try:
+            return request.user.doctor
+        except Exception:
+            return None
+
+    def get(self, request):
+        doctor = self.get_doctor(request)
+        if not doctor:
+            return Response({'error': 'Profil médecin introuvable'}, status=403)
+
+        queryset = CompteRendu.objects.filter(doctor=doctor)
+        patient_filter = request.query_params.get('patient')
+        if patient_filter:
+            queryset = queryset.filter(patient__id=patient_filter)
+
+        return Response(CompteRenduSerializer(queryset, many=True).data)
+
+    def post(self, request):
+        doctor = self.get_doctor(request)
+        if not doctor:
+            return Response({'error': 'Profil médecin introuvable'}, status=403)
+
+        serializer = CompteRenduSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save(doctor=doctor)
+            return Response(serializer.data, status=drf_status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=400)
+
+
+class CompteRenduDetailView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_object(self, pk, request):
+        try:
+            cr = CompteRendu.objects.get(pk=pk)
+            if cr.doctor != request.user.doctor:
+                return None
+            return cr
+        except Exception:
+            return None
+
+    def get(self, request, pk):
+        cr = self.get_object(pk, request)
+        if not cr:
+            return Response({'error': 'Introuvable ou non autorisé'}, status=404)
+        return Response(CompteRenduSerializer(cr).data)
+
+    def patch(self, request, pk):
+        cr = self.get_object(pk, request)
+        if not cr:
+            return Response({'error': 'Introuvable ou non autorisé'}, status=404)
+        serializer = CompteRenduSerializer(cr, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        return Response(serializer.errors, status=400)
+
+    def delete(self, request, pk):
+        cr = self.get_object(pk, request)
+        if not cr:
+            return Response({'error': 'Introuvable ou non autorisé'}, status=404)
+        cr.delete()
+        return Response(status=drf_status.HTTP_204_NO_CONTENT)

@@ -1,440 +1,305 @@
-import React, { useState, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { 
-  DocumentTextIcon,
-  ArrowDownTrayIcon,
-  TrashIcon,
-  MagnifyingGlassIcon as SearchIcon,
-  FunnelIcon as FilterIcon,
-  PlusIcon,
-  DocumentChartBarIcon as DocumentReportIcon,
-  PhotoIcon as PhotographIcon,
-  DocumentDuplicateIcon,
-  ClockIcon,
-  UserIcon,
-  XMarkIcon
+import React, { useState, useEffect, useRef } from 'react';
+import {
+  DocumentTextIcon, ArrowDownTrayIcon, TrashIcon,
+  MagnifyingGlassIcon, FunnelIcon, PlusIcon,
+  DocumentChartBarIcon, PhotoIcon, DocumentDuplicateIcon,
+  ClockIcon, UserIcon, XMarkIcon, CheckIcon, ExclamationCircleIcon
 } from '@heroicons/react/24/outline';
+import api from '../../services/api';
 
-// Alias pour la compatibilité
-const DocumentIcon = DocumentTextIcon;
-const DownloadIcon = ArrowDownTrayIcon;
+const FILTERS = [
+  { id: 'all', name: 'Tous les documents' },
+  { id: 'analyse', name: 'Analyses' },
+  { id: 'imagerie', name: 'Imagerie' },
+  { id: 'ordonnance', name: 'Ordonnances' },
+  { id: 'compte_rendu', name: 'Comptes-rendus' },
+  { id: 'autre', name: 'Autres' },
+];
+
+const getDocumentIcon = (type) => {
+  switch (type) {
+    case 'analyse': return <DocumentChartBarIcon className="h-5 w-5 text-blue-500" />;
+    case 'imagerie': return <PhotoIcon className="h-5 w-5 text-green-500" />;
+    case 'ordonnance': return <DocumentDuplicateIcon className="h-5 w-5 text-yellow-500" />;
+    default: return <DocumentTextIcon className="h-5 w-5 text-gray-500" />;
+  }
+};
 
 const Documents = () => {
-  const navigate = useNavigate();
   const fileInputRef = useRef(null);
+  const [documents, setDocuments] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [uploading, setUploading] = useState(false);
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
   const [activeFilter, setActiveFilter] = useState('all');
-  const [selectedDocuments, setSelectedDocuments] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
-  const [showImportDialog, setShowImportDialog] = useState(false);
-  const [importedFiles, setImportedFiles] = useState([]);
-  
-  // Données factices pour les documents
-  const documents = [
-    {
-      id: 1,
-      name: 'Compte-rendu consultation du 15/12/2023',
-      type: 'Compte-rendu',
-      date: '15/12/2023',
-      size: '2.4 MB',
-      category: 'consultations',
-      doctor: 'Dr. Martin Dupont',
-      format: 'PDF'
-    },
-    {
-      id: 2,
-      name: 'Résultats analyse sanguine',
-      type: 'Résultats de laboratoire',
-      date: '10/12/2023',
-      size: '1.8 MB',
-      category: 'analyses',
-      doctor: 'Laboratoire Biomédical',
-      format: 'PDF'
-    },
-    {
-      id: 3,
-      name: 'Radiographie du genou droit',
-      type: 'Imagerie médicale',
-      date: '05/12/2023',
-      size: '4.7 MB',
-      category: 'imagerie',
-      doctor: 'Dr. Sophie Martin',
-      format: 'DICOM'
-    },
-    {
-      id: 4,
-      name: 'Ordonnance du 01/12/2023',
-      type: 'Ordonnance',
-      date: '01/12/2023',
-      size: '1.2 MB',
-      category: 'ordonnances',
-      doctor: 'Dr. Martin Dupont',
-      format: 'PDF'
-    },
-    {
-      id: 5,
-      name: 'Échographie abdominale',
-      type: 'Imagerie médicale',
-      date: '20/11/2023',
-      size: '3.5 MB',
-      category: 'imagerie',
-      doctor: 'Dr. Jean Lefebvre',
-      format: 'DICOM'
-    },
-    {
-      id: 6,
-      name: 'Compte-rendu opératoire',
-      type: 'Compte-rendu',
-      date: '10/11/2023',
-      size: '2.1 MB',
-      category: 'consultations',
-      doctor: 'Dr. Sophie Martin',
-      format: 'PDF'
-    },
-  ];
+  const [selectedDocuments, setSelectedDocuments] = useState([]);
 
-  const filters = [
-    { id: 'all', name: 'Tous les documents', count: documents.length },
-    { id: 'consultations', name: 'Comptes-rendus', count: documents.filter(doc => doc.category === 'consultations').length },
-    { id: 'analyses', name: 'Analyses', count: documents.filter(doc => doc.category === 'analyses').length },
-    { id: 'imagerie', name: 'Imagerie', count: documents.filter(doc => doc.category === 'imagerie').length },
-    { id: 'ordonnances', name: 'Ordonnances', count: documents.filter(doc => doc.category === 'ordonnances').length },
-  ];
+  // Modal d'import
+  const [showImportModal, setShowImportModal] = useState(false);
+  const [importForm, setImportForm] = useState({ name: '', type: '', file: null });
 
-  const filteredDocuments = documents.filter(doc => {
-    const matchesFilter = activeFilter === 'all' || doc.category === activeFilter;
-    const matchesSearch = doc.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                         doc.doctor.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchesFilter && matchesSearch;
-  });
+  useEffect(() => {
+    api.getMedicalDocuments()
+      .then(setDocuments)
+      .catch(() => setError('Impossible de charger les documents.'))
+      .finally(() => setLoading(false));
+  }, []);
 
-  const toggleDocumentSelection = (id) => {
-    setSelectedDocuments(prev => 
-      prev.includes(id) 
-        ? prev.filter(docId => docId !== id)
-        : [...prev, id]
+  const showMsg = (msg, isError = false) => {
+    if (isError) setError(msg);
+    else setSuccess(msg);
+    setTimeout(() => { setError(''); setSuccess(''); }, 3000);
+  };
+
+  const handleDelete = async (id) => {
+    if (!window.confirm('Supprimer ce document ?')) return;
+    try {
+      await api.deleteMedicalDocument(id);
+      setDocuments(prev => prev.filter(d => d.id !== id));
+      setSelectedDocuments(prev => prev.filter(i => i !== id));
+      showMsg('Document supprimé.');
+    } catch {
+      showMsg('Erreur lors de la suppression.', true);
+    }
+  };
+
+  const handleDeleteSelected = async () => {
+    if (!window.confirm(`Supprimer ${selectedDocuments.length} document(s) ?`)) return;
+    for (const id of selectedDocuments) {
+      try {
+        await api.deleteMedicalDocument(id);
+        setDocuments(prev => prev.filter(d => d.id !== id));
+      } catch {}
+    }
+    setSelectedDocuments([]);
+    showMsg('Documents supprimés.');
+  };
+
+  const handleUpload = async () => {
+    if (!importForm.name || !importForm.type || !importForm.file) {
+      showMsg('Veuillez remplir tous les champs.', true);
+      return;
+    }
+    setUploading(true);
+    try {
+      const created = await api.uploadMedicalDocument(importForm);
+      setDocuments(prev => [created, ...prev]);
+      setShowImportModal(false);
+      setImportForm({ name: '', type: '', file: null });
+      showMsg('Document importé avec succès.');
+    } catch (err) {
+      showMsg(err.message || "Erreur lors de l'import.", true);
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const toggleSelect = (id) => {
+    setSelectedDocuments(prev =>
+      prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
     );
   };
 
-  const selectAllDocuments = () => {
-    if (selectedDocuments.length === filteredDocuments.length) {
-      setSelectedDocuments([]);
-    } else {
-      setSelectedDocuments(filteredDocuments.map(doc => doc.id));
-    }
-  };
+  const filtered = documents.filter(doc => {
+    const matchFilter = activeFilter === 'all' || doc.type === activeFilter;
+    const matchSearch = searchQuery === '' ||
+      (doc.name || '').toLowerCase().includes(searchQuery.toLowerCase());
+    return matchFilter && matchSearch;
+  });
 
-  const getDocumentIcon = (type) => {
-    switch (type) {
-      case 'Résultats de laboratoire':
-        return <DocumentReportIcon className="h-5 w-5 text-blue-500" />;
-      case 'Imagerie médicale':
-        return <PhotographIcon className="h-5 w-5 text-green-500" />;
-      case 'Ordonnance':
-        return <DocumentDuplicateIcon className="h-5 w-5 text-yellow-500" />;
-      default:
-        return <DocumentIcon className="h-5 w-5 text-gray-500" />;
-    }
-  };
+  if (loading) return (
+    <div className="flex justify-center py-20">
+      <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-teal-600"></div>
+    </div>
+  );
 
   return (
     <div className="space-y-6">
+      {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Documents médicaux</h1>
-          <p className="mt-1 text-sm text-gray-500">
-            Consultez et gérez tous vos documents médicaux en un seul endroit
-          </p>
+          <p className="mt-1 text-sm text-gray-500">Consultez et gérez tous vos documents médicaux</p>
         </div>
-        <div className="mt-4 sm:mt-0 flex space-x-3">
-          <button
-            type="button"
-            onClick={() => navigate('/patient/documents/nouveau')}
-            className="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
-          >
-            <DocumentTextIcon className="-ml-1 mr-2 h-5 w-5 text-gray-500" />
-            Nouveau document
-          </button>
-          <button
-            type="button"
-            onClick={() => fileInputRef.current.click()}
-            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
-          >
-            <PlusIcon className="-ml-1 mr-2 h-5 w-5" />
-            Importer
-          </button>
-          <input
-            type="file"
-            ref={fileInputRef}
-            className="hidden"
-            multiple
-            onChange={(e) => {
-              const files = Array.from(e.target.files).map(file => ({
-                id: Math.random().toString(36).substr(2, 9),
-                file,
-                name: file.name,
-                size: formatFileSize(file.size),
-                type: file.type.split('/').pop().toUpperCase(),
-                date: new Date().toLocaleDateString(),
-                status: 'Nouveau'
-              }));
-              setImportedFiles(files);
-              setShowImportDialog(true);
-            }}
-          />
-        </div>
+        <button onClick={() => setShowImportModal(true)}
+          className="mt-4 sm:mt-0 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-teal-600 hover:bg-teal-700">
+          <PlusIcon className="-ml-1 mr-2 h-5 w-5" />
+          Importer un document
+        </button>
       </div>
 
-      {/* Filtres et recherche */}
-      <div className="bg-white shadow overflow-hidden sm:rounded-lg">
-        <div className="px-4 py-5 sm:p-6">
-          <div className="flex flex-col sm:flex-row space-y-4 sm:space-y-0 sm:space-x-4">
-            <div className="flex-1">
-              <label htmlFor="search" className="sr-only">
-                Rechercher
-              </label>
-              <div className="relative rounded-md shadow-sm">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <SearchIcon className="h-5 w-5 text-gray-400" aria-hidden="true" />
-                </div>
-                <input
-                  type="text"
-                  name="search"
-                  id="search"
-                  className="focus:ring-primary-500 focus:border-primary-500 block w-full pl-10 sm:text-sm border-gray-300 rounded-md"
-                  placeholder="Rechercher un document..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                />
-              </div>
-            </div>
-            <div className="flex-shrink-0">
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <FilterIcon className="h-5 w-5 text-gray-400" aria-hidden="true" />
-                </div>
-                <select
-                  id="filter"
-                  name="filter"
-                  className="focus:ring-primary-500 focus:border-primary-500 h-full py-0 pl-10 pr-8 border-gray-300 bg-transparent text-gray-500 sm:text-sm rounded-md"
-                  value={activeFilter}
-                  onChange={(e) => setActiveFilter(e.target.value)}
-                >
-                  {filters.map((filter) => (
-                    <option key={filter.id} value={filter.id}>
-                      {filter.name} ({filter.count})
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
-          </div>
+      {/* Messages */}
+      {success && (
+        <div className="p-4 bg-green-50 border border-green-200 rounded-xl text-green-800 text-sm flex items-center gap-2">
+          <CheckIcon className="h-5 w-5" />{success}
         </div>
-      </div>
+      )}
+      {error && (
+        <div className="p-4 bg-red-50 border border-red-200 rounded-xl text-red-800 text-sm flex items-center gap-2">
+          <ExclamationCircleIcon className="h-5 w-5" />{error}
+        </div>
+      )}
 
-      {/* Liste des documents */}
-      <div className="bg-white shadow overflow-hidden sm:rounded-lg">
-        <div className="px-4 py-5 sm:px-6 border-b border-gray-200">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center">
-              <input
-                id="select-all"
-                name="select-all"
-                type="checkbox"
-                className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded"
-                checked={selectedDocuments.length > 0 && selectedDocuments.length === filteredDocuments.length}
-                onChange={selectAllDocuments}
-              />
-              <label htmlFor="select-all" className="ml-2 text-sm text-gray-700">
-                {selectedDocuments.length > 0 
-                  ? `${selectedDocuments.length} sélectionné${selectedDocuments.length > 1 ? 's' : ''}` 
-                  : 'Tout sélectionner'}
-              </label>
+      {/* Filtres */}
+      <div className="bg-white shadow sm:rounded-lg px-4 py-5 sm:p-6">
+        <div className="flex flex-col sm:flex-row gap-4">
+          <div className="flex-1 relative">
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <MagnifyingGlassIcon className="h-5 w-5 text-gray-400" />
             </div>
-            <div className="flex space-x-2">
-              <button
-                type="button"
-                className={`inline-flex items-center px-3 py-1.5 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md ${
-                  selectedDocuments.length > 0 ? 'text-gray-700 bg-white' : 'text-gray-300 bg-gray-50 cursor-not-allowed'
-                }`}
-                disabled={selectedDocuments.length === 0}
-              >
-                <DownloadIcon className="-ml-0.5 mr-2 h-4 w-4" />
-                Télécharger
-              </button>
-              <button
-                type="button"
-                className={`inline-flex items-center px-3 py-1.5 border border-transparent text-sm leading-4 font-medium rounded-md ${
-                  selectedDocuments.length > 0 ? 'text-white bg-red-600 hover:bg-red-700' : 'text-gray-300 bg-gray-200 cursor-not-allowed'
-                }`}
-                disabled={selectedDocuments.length === 0}
-              >
-                <TrashIcon className="-ml-0.5 mr-2 h-4 w-4" />
-                Supprimer
-              </button>
-            </div>
+            <input type="text"
+              className="focus:ring-teal-500 focus:border-teal-500 block w-full pl-10 sm:text-sm border-gray-300 rounded-md"
+              placeholder="Rechercher un document..."
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+            />
           </div>
-        </div>
-        
-        <div className="bg-white overflow-hidden">
-          {filteredDocuments.length > 0 ? (
-            <ul className="divide-y divide-gray-200">
-              {filteredDocuments.map((document) => (
-                <li key={document.id} className="hover:bg-gray-50">
-                  <div className="px-4 py-4 sm:px-6">
-                    <div className="flex items-center">
-                      <input
-                        id={`document-${document.id}`}
-                        name={`document-${document.id}`}
-                        type="checkbox"
-                        className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded"
-                        checked={selectedDocuments.includes(document.id)}
-                        onChange={() => toggleDocumentSelection(document.id)}
-                      />
-                      <div className="ml-4 flex-shrink-0">
-                        <div className="h-10 w-10 rounded-full bg-gray-100 flex items-center justify-center">
-                          {getDocumentIcon(document.type)}
-                        </div>
-                      </div>
-                      <div className="ml-4 flex-1 min-w-0">
-                        <div className="flex justify-between">
-                          <p className="text-sm font-medium text-primary-600 truncate">
-                            {document.name}
-                          </p>
-                          <div className="ml-2 flex-shrink-0 flex">
-                            <p className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">
-                              {document.format}
-                            </p>
-                          </div>
-                        </div>
-                        <div className="mt-1 flex flex-col sm:flex-row sm:flex-wrap sm:mt-0 sm:space-x-6">
-                          <div className="mt-2 flex items-center text-sm text-gray-500">
-                            <DocumentTextIcon className="flex-shrink-0 mr-1.5 h-4 w-4 text-gray-400" />
-                            {document.type}
-                          </div>
-                          <div className="mt-2 flex items-center text-sm text-gray-500">
-                            <UserIcon className="flex-shrink-0 mr-1.5 h-4 w-4 text-gray-400" />
-                            {document.doctor}
-                          </div>
-                          <div className="mt-2 flex items-center text-sm text-gray-500">
-                            <ClockIcon className="flex-shrink-0 mr-1.5 h-4 w-4 text-gray-400" />
-                            {document.date}
-                          </div>
-                        </div>
-                      </div>
-                      <div className="ml-4 flex-shrink-0 flex space-x-2">
-                        <button
-                          type="button"
-                          className="inline-flex items-center p-1.5 border border-gray-300 rounded-full shadow-sm text-gray-400 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
-                          title="Télécharger"
-                        >
-                          <DownloadIcon className="h-4 w-4" />
-                        </button>
-                        <button
-                          type="button"
-                          className="inline-flex items-center p-1.5 border border-transparent rounded-full shadow-sm text-gray-400 hover:bg-red-50 hover:text-red-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
-                          title="Supprimer"
-                        >
-                          <TrashIcon className="h-4 w-4" />
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                </li>
+          <div className="flex-shrink-0">
+            <select
+              className="h-full py-2 pl-3 pr-8 border-gray-300 bg-transparent text-gray-700 sm:text-sm rounded-md focus:ring-teal-500 focus:border-teal-500"
+              value={activeFilter}
+              onChange={e => setActiveFilter(e.target.value)}
+            >
+              {FILTERS.map(f => (
+                <option key={f.id} value={f.id}>{f.name}</option>
               ))}
-            </ul>
-          ) : (
-            <div className="text-center py-12">
-              <DocumentTextIcon className="mx-auto h-12 w-12 text-gray-400" />
-              <h3 className="mt-2 text-sm font-medium text-gray-900">Aucun document trouvé</h3>
-              <p className="mt-1 text-sm text-gray-500">
-                {searchQuery 
-                  ? 'Aucun document ne correspond à votre recherche.'
-                  : activeFilter === 'all'
-                    ? 'Commencez par importer vos premiers documents.'
-                    : `Aucun document dans la catégorie "${filters.find(f => f.id === activeFilter)?.name || ''}".`}
-              </p>
-              <div className="mt-6">
-                <button
-                  type="button"
-                  className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
-                >
-                  <PlusIcon className="-ml-1 mr-2 h-5 w-5" />
-                  Importer des documents
-                </button>
-              </div>
-            </div>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      {/* Liste */}
+      <div className="bg-white shadow overflow-hidden sm:rounded-lg">
+        <div className="px-4 py-4 sm:px-6 border-b border-gray-200 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <input type="checkbox"
+              className="h-4 w-4 text-teal-600 focus:ring-teal-500 border-gray-300 rounded"
+              checked={selectedDocuments.length > 0 && selectedDocuments.length === filtered.length}
+              onChange={() => {
+                if (selectedDocuments.length === filtered.length) setSelectedDocuments([]);
+                else setSelectedDocuments(filtered.map(d => d.id));
+              }}
+            />
+            <label className="text-sm text-gray-700">
+              {selectedDocuments.length > 0 ? `${selectedDocuments.length} sélectionné(s)` : 'Tout sélectionner'}
+            </label>
+          </div>
+          {selectedDocuments.length > 0 && (
+            <button onClick={handleDeleteSelected}
+              className="inline-flex items-center px-3 py-1.5 border border-transparent text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700">
+              <TrashIcon className="h-4 w-4 mr-1.5" />
+              Supprimer ({selectedDocuments.length})
+            </button>
           )}
         </div>
-      </div>
 
-      {/* Modal d'importation */}
-      {showImportDialog && (
-        <div className="fixed z-10 inset-0 overflow-y-auto">
-          <div className="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
-            <div className="fixed inset-0 transition-opacity" aria-hidden="true">
-              <div className="absolute inset-0 bg-gray-500 opacity-75"></div>
-            </div>
-            <span className="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
-            <div className="inline-block align-bottom bg-white rounded-lg px-4 pt-5 pb-4 text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full sm:p-6">
-              <div>
-                <div className="mt-3 text-center sm:mt-5">
-                  <h3 className="text-lg leading-6 font-medium text-gray-900">
-                    Importer des documents
-                  </h3>
-                  <div className="mt-2">
-                    <p className="text-sm text-gray-500">
-                      Les fichiers suivants seront importés dans votre espace documents :
-                    </p>
-                    <div className="mt-4 space-y-2 max-h-60 overflow-y-auto">
-                      {importedFiles.map((file) => (
-                        <div key={file.id} className="flex items-center justify-between p-2 bg-gray-50 rounded">
-                          <div className="flex items-center space-x-3">
-                            <DocumentTextIcon className="h-5 w-5 text-gray-400" />
-                            <div>
-                              <p className="text-sm font-medium text-gray-900">{file.name}</p>
-                              <p className="text-xs text-gray-500">{file.size} • {file.type}</p>
-                            </div>
-                          </div>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setImportedFiles(importedFiles.filter(f => f.id !== file.id));
-                            }}
-                            className="text-gray-400 hover:text-red-500"
-                          >
-                            <XMarkIcon className="h-5 w-5" />
-                          </button>
-                        </div>
-                      ))}
+        {filtered.length === 0 ? (
+          <div className="text-center py-12">
+            <DocumentTextIcon className="mx-auto h-12 w-12 text-gray-400" />
+            <h3 className="mt-2 text-sm font-medium text-gray-900">Aucun document trouvé</h3>
+            <p className="mt-1 text-sm text-gray-500">
+              {searchQuery ? 'Aucun document ne correspond à votre recherche.' : 'Importez votre premier document.'}
+            </p>
+          </div>
+        ) : (
+          <ul className="divide-y divide-gray-200">
+            {filtered.map(doc => (
+              <li key={doc.id} className="hover:bg-gray-50 px-4 py-4 sm:px-6">
+                <div className="flex items-center gap-4">
+                  <input type="checkbox"
+                    className="h-4 w-4 text-teal-600 focus:ring-teal-500 border-gray-300 rounded"
+                    checked={selectedDocuments.includes(doc.id)}
+                    onChange={() => toggleSelect(doc.id)}
+                  />
+                  <div className="h-10 w-10 rounded-full bg-gray-100 flex items-center justify-center flex-shrink-0">
+                    {getDocumentIcon(doc.type)}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-teal-600 truncate">{doc.name}</p>
+                    <div className="mt-1 flex flex-wrap gap-4 text-sm text-gray-500">
+                      <span className="flex items-center gap-1">
+                        <DocumentTextIcon className="h-4 w-4 text-gray-400" />
+                        {doc.type}
+                      </span>
+                      {doc.size && (
+                        <span>{doc.size}</span>
+                      )}
+                      <span className="flex items-center gap-1">
+                        <ClockIcon className="h-4 w-4 text-gray-400" />
+                        {new Date(doc.created_at).toLocaleDateString('fr-FR')}
+                      </span>
                     </div>
                   </div>
+                  <div className="flex items-center gap-2">
+                    {doc.file_url && (
+                      <a href={doc.file_url} target="_blank" rel="noreferrer"
+                        className="p-1.5 border border-gray-300 rounded-full text-gray-400 hover:bg-gray-50 hover:text-teal-600">
+                        <ArrowDownTrayIcon className="h-4 w-4" />
+                      </a>
+                    )}
+                    <button onClick={() => handleDelete(doc.id)}
+                      className="p-1.5 border border-transparent rounded-full text-gray-400 hover:bg-red-50 hover:text-red-600">
+                      <TrashIcon className="h-4 w-4" />
+                    </button>
+                  </div>
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+
+      {/* Modal import */}
+      {showImportModal && (
+        <div className="fixed inset-0 z-50 overflow-y-auto">
+          <div className="fixed inset-0 bg-black bg-opacity-50" onClick={() => setShowImportModal(false)} />
+          <div className="flex min-h-full items-center justify-center p-4">
+            <div className="relative bg-white rounded-2xl shadow-xl w-full max-w-md p-6">
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="text-lg font-semibold text-gray-900">Importer un document</h3>
+                <button onClick={() => setShowImportModal(false)} className="text-gray-400 hover:text-gray-600">
+                  <XMarkIcon className="h-6 w-6" />
+                </button>
+              </div>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Nom du document *</label>
+                  <input type="text" value={importForm.name}
+                    onChange={e => setImportForm(p => ({ ...p, name: e.target.value }))}
+                    placeholder="Ex: Analyse sanguine complète"
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-teal-500 focus:border-teal-500" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Type *</label>
+                  <select value={importForm.type}
+                    onChange={e => setImportForm(p => ({ ...p, type: e.target.value }))}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-teal-500 focus:border-teal-500">
+                    <option value="">Sélectionner</option>
+                    <option value="analyse">Résultats de laboratoire</option>
+                    <option value="imagerie">Imagerie médicale</option>
+                    <option value="ordonnance">Ordonnance</option>
+                    <option value="compte_rendu">Compte-rendu</option>
+                    <option value="autre">Autre</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Fichier *</label>
+                  <input type="file" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
+                    onChange={e => setImportForm(p => ({ ...p, file: e.target.files[0] }))}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" />
+                  <p className="mt-1 text-xs text-gray-500">PDF, JPG, PNG, DOC acceptés</p>
                 </div>
               </div>
-              <div className="mt-5 sm:mt-6 sm:grid sm:grid-cols-2 sm:gap-3 sm:grid-flow-row-dense">
-                <button
-                  type="button"
-                  className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-primary-600 text-base font-medium text-white hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 sm:col-start-2 sm:text-sm"
-                  onClick={() => {
-                    // Ici, vous pouvez ajouter la logique pour traiter les fichiers
-                    console.log('Fichiers à importer :', importedFiles);
-                    // Rediriger vers la page de nouveau document avec les fichiers présélectionnés
-                    navigate('/patient/documents/nouveau', { 
-                      state: { importedFiles } 
-                    });
-                    setShowImportDialog(false);
-                  }}
-                >
-                  Importer {importedFiles.length} fichier{importedFiles.length > 1 ? 's' : ''}
-                </button>
-                <button
-                  type="button"
-                  className="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 sm:mt-0 sm:col-start-1 sm:text-sm"
-                  onClick={() => {
-                    setShowImportDialog(false);
-                    setImportedFiles([]);
-                  }}
-                >
+              <div className="mt-6 flex justify-end gap-3">
+                <button onClick={() => setShowImportModal(false)}
+                  className="px-4 py-2 border border-gray-300 rounded-xl text-gray-700 hover:bg-gray-50 text-sm font-medium">
                   Annuler
+                </button>
+                <button onClick={handleUpload} disabled={uploading}
+                  className="px-4 py-2 bg-teal-600 text-white rounded-xl hover:bg-teal-700 text-sm font-medium disabled:opacity-50">
+                  {uploading ? 'Import en cours...' : 'Importer'}
                 </button>
               </div>
             </div>
@@ -444,14 +309,5 @@ const Documents = () => {
     </div>
   );
 };
-
-// Fonction utilitaire pour formater la taille des fichiers
-function formatFileSize(bytes) {
-  if (bytes === 0) return '0 Bytes';
-  const k = 1024;
-  const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-  const i = Math.floor(Math.log(bytes) / Math.log(k));
-  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-}
 
 export default Documents;

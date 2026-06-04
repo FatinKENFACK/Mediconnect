@@ -10,6 +10,7 @@ urlpatterns = [
     path('api/accounts/token/refresh/', TokenRefreshView.as_view(), name='token-refresh'),
     path('api/appointments/', include('appointments.urls')),
     path('api/medical/', include('medical_records.urls')),
+    path('api/messaging/', include('messaging.urls')),
 ]
 
 if settings.DEBUG:

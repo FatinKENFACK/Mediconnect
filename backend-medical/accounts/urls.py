@@ -2,7 +2,7 @@ from django.urls import path
 
 
 from .views import (
-    DoctorListView, DoctorProfileView, HospitalProfileView,
+    DoctorListView, DoctorProfileView, HospitalAppointmentsView, HospitalProfileView,
     PatientRegisterView, HospitalRegisterView, LoginView,
     UserProfileView, DoctorRegisterView,
     AdminStatsView, AdminHospitalListView, AdminHospitalStatusView,
@@ -41,4 +41,6 @@ urlpatterns = [
     # Dans urlpatterns, ajoute :
     path('hospitals/public/', PublicHospitalListView.as_view(), name='public-hospitals'),
     path('hospitals/public/<int:pk>/', PublicHospitalDetailView.as_view(), name='public-hospital-detail'),
+
+    path('hospital/appointments/', HospitalAppointmentsView.as_view(), name='hospital-appointments'),
 ]

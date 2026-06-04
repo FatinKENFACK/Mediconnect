@@ -95,6 +95,29 @@ class PrescriptionSerializer(serializers.ModelSerializer):
             for item in items_data:
                 PrescriptionItem.objects.create(prescription=instance, **item)
         return instance
+    
+from .models import Appointment, DoctorAvailability, Prescription, PrescriptionItem, CompteRendu
+
+class CompteRenduSerializer(serializers.ModelSerializer):
+    patient_name = serializers.SerializerMethodField()
+    doctor_name = serializers.SerializerMethodField()
+    type_label = serializers.CharField(source='get_type_display', read_only=True)
+
+    class Meta:
+        model = CompteRendu
+        fields = [
+            'id', 'doctor', 'patient', 'patient_name', 'doctor_name',
+            'date', 'type', 'type_label', 'motif', 'observations',
+            'diagnostic', 'traitement', 'recommandations',
+            'created_at', 'updated_at'
+        ]
+        read_only_fields = ['id', 'doctor', 'created_at', 'updated_at']
+
+    def get_patient_name(self, obj):
+        return f"{obj.patient.first_name} {obj.patient.last_name}"
+
+    def get_doctor_name(self, obj):
+        return f"Dr. {obj.doctor.user.first_name} {obj.doctor.user.last_name}"
 
 
 

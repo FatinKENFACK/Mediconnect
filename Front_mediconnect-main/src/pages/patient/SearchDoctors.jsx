@@ -78,6 +78,23 @@ export default function SearchDoctors() {
     };
     loadDoctors();
   }, []);
+
+  useEffect(() => {
+  let result = doctors;
+  if (searchTerm) {
+    result = result.filter(d =>
+      d.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      d.specialty.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+  }
+  if (selectedSpecialty) {
+    result = result.filter(d => d.specialty === selectedSpecialty);
+  }
+  if (consultationType) {
+    result = result.filter(d => d.consultationTypes.includes(consultationType));
+  }
+  setFilteredDoctors(result);
+}, [doctors, searchTerm, selectedSpecialty, consultationType]);
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       {/* Header */}

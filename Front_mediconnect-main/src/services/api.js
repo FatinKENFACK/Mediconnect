@@ -598,6 +598,72 @@ const getDoctorPatients = async () => {
   return await request('/appointments/doctor/patients/');
 };
 
+// ================= COMPTES-RENDUS =================
+
+const getComptesRendus = async (filters = {}) => {
+  const query = new URLSearchParams(filters).toString();
+  return await request(`/appointments/comptes-rendus/${query ? '?' + query : ''}`);
+};
+
+const createCompteRendu = async (data) => {
+  return await request('/appointments/comptes-rendus/', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+};
+
+const updateCompteRendu = async (id, data) => {
+  return await request(`/appointments/comptes-rendus/${id}/`, {
+    method: 'PATCH',
+    body: JSON.stringify(data),
+  });
+};
+
+const deleteCompteRendu = async (id) => {
+  return await request(`/appointments/comptes-rendus/${id}/`, {
+    method: 'DELETE',
+  });
+};
+
+const getCompteRendu = async (id) => {
+  return await request(`/appointments/comptes-rendus/${id}/`);
+};
+
+// RDV de tous les médecins de l'hôpital
+const getHospitalAppointments = async () => {
+  return await request('/accounts/hospital/appointments/');
+};
+
+// ================= MESSAGING =================
+
+const getConversations = async () => {
+  return await request('/messaging/conversations/');
+};
+
+const createConversation = async (data) => {
+  return await request('/messaging/conversations/', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+};
+
+const getConversation = async (id) => {
+  return await request(`/messaging/conversations/${id}/`);
+};
+
+const sendMessage = async (conversationId, content) => {
+  return await request(`/messaging/conversations/${conversationId}/messages/`, {
+    method: 'POST',
+    body: JSON.stringify({ content }),
+  });
+};
+
+const deleteConversation = async (id) => {
+  return await request(`/messaging/conversations/${id}/`, {
+    method: 'DELETE',
+  });
+};
+
 // ================= EXPORT =================
 
 const api = {
@@ -665,6 +731,19 @@ const api = {
   updatePrescription,
   deletePrescription,
   getDoctorPatients,
+
+  getComptesRendus,
+  createCompteRendu,
+  updateCompteRendu,
+  deleteCompteRendu,
+  getCompteRendu,
+
+  getHospitalAppointments,
+  getConversations,
+  createConversation,
+  getConversation,
+  sendMessage, 
+  deleteConversation,
 };
 
 export default api;

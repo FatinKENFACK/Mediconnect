@@ -11,6 +11,8 @@ from .views import (
     PrescriptionListCreateView,
     PrescriptionDetailView,
     DoctorPatientsListView,
+    CompteRenduListCreateView,
+    CompteRenduDetailView,
 )
 
 urlpatterns = [
@@ -27,4 +29,7 @@ urlpatterns = [
     # Prescriptions
     path('prescriptions/', PrescriptionListCreateView.as_view(), name='prescription-list'),
     path('prescriptions/<int:pk>/', PrescriptionDetailView.as_view(), name='prescription-detail'),
+    # Comptes-rendus
+    path('comptes-rendus/', CompteRenduListCreateView.as_view(), name='comptes-rendus-list'),
+    path('comptes-rendus/<int:pk>/', CompteRenduDetailView.as_view(), name='comptes-rendus-detail'),
 ]

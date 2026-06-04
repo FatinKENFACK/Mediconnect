@@ -130,7 +130,7 @@ const SearchHospitals = () => {
     filtered.sort((a, b) => parseFloat(a.distance) - parseFloat(b.distance));
 
     setSortedHospitals(filtered);
-  }, [searchQuery, selectedSpecialty, selectedType, selectedDistance]);
+  }, [hospitals, searchQuery, selectedSpecialty, selectedType, selectedDistance]);
 
   const clearFilters = () => {
     setSearchQuery('');
