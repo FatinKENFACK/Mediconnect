@@ -13,6 +13,7 @@ from .views import (
     DoctorPatientsListView,
     CompteRenduListCreateView,
     CompteRenduDetailView,
+    HospitalPatientRecordsView,
 )
 
 urlpatterns = [
@@ -32,4 +33,7 @@ urlpatterns = [
     # Comptes-rendus
     path('comptes-rendus/', CompteRenduListCreateView.as_view(), name='comptes-rendus-list'),
     path('comptes-rendus/<int:pk>/', CompteRenduDetailView.as_view(), name='comptes-rendus-detail'),
+
+    # Dossiers patients (vue hôpital)
+    path('hospital/patient-records/', HospitalPatientRecordsView.as_view(), name='hospital-patient-records'),
 ]

@@ -160,3 +160,71 @@ class Doctor(models.Model):
 
     def __str__(self):
         return f"Dr. {self.user.first_name} {self.user.last_name} — {self.specialization}"
+
+class Service(models.Model):
+    hospital = models.ForeignKey(
+        'Hospital',
+        on_delete=models.CASCADE,
+        related_name='services'
+    )
+    name            = models.CharField(max_length=255)
+    description     = models.TextField(blank=True)
+    category        = models.CharField(max_length=150, blank=True)
+    consultation_fee= models.PositiveIntegerField(default=0)
+    duration        = models.CharField(max_length=50, blank=True, default='30 min')
+    is_active       = models.BooleanField(default=True)
+    created_at      = models.DateTimeField(auto_now_add=True)
+    updated_at      = models.DateTimeField(auto_now=True)
+ 
+    class Meta:
+        ordering = ['-created_at']
+ 
+    def __str__(self):
+        return f"{self.name} — {self.hospital.name}"
+
+
+# ============================================================
+# MODÈLE : Abonnement hôpital
+# ============================================================
+class Subscription(models.Model):
+
+    PLAN_CHOICES = [
+        ('basic',        'Basic'),
+        ('professional', 'Professional'),
+        ('enterprise',   'Enterprise'),
+    ]
+    STATUS_CHOICES = [
+        ('active',    'Actif'),
+        ('suspended', 'Suspendu'),
+        ('pending',   'En attente'),
+        ('cancelled', 'Annulé'),
+        ('expired',   'Expiré'),
+    ]
+    BILLING_CHOICES = [
+        ('monthly', 'Mensuel'),
+        ('yearly',  'Annuel'),
+    ]
+
+    hospital      = models.OneToOneField(
+        Hospital,
+        on_delete=models.CASCADE,
+        related_name='subscription'
+    )
+    plan          = models.CharField(max_length=20, choices=PLAN_CHOICES, default='basic')
+    status        = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
+    billing_cycle = models.CharField(max_length=10, choices=BILLING_CHOICES, default='monthly')
+    price         = models.PositiveIntegerField(default=50000)  # en XAF
+    start_date    = models.DateField(null=True, blank=True)
+    end_date      = models.DateField(null=True, blank=True)
+    auto_renew    = models.BooleanField(default=True)
+    created_at    = models.DateTimeField(auto_now_add=True)
+    updated_at    = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"{self.hospital.name} — {self.get_plan_display()} ({self.get_status_display()})"
+
+
+

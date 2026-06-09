@@ -2,12 +2,14 @@ from django.urls import path
 
 
 from .views import (
-    DoctorListView, DoctorProfileView, HospitalAppointmentsView, HospitalProfileView,
+    DoctorListView, DoctorProfileView, HospitalAppointmentsView, HospitalProfileView, HospitalServiceDetailView, HospitalServiceListCreateView,
     PatientRegisterView, HospitalRegisterView, LoginView,
     UserProfileView, DoctorRegisterView,
     AdminStatsView, AdminHospitalListView, AdminHospitalStatusView,
     AdminDoctorListView, AdminDoctorStatusView,
     PublicHospitalListView, PublicHospitalDetailView,
+    HospitalDoctorsView,
+    HospitalStatsView, AdminSubscriptionListView, AdminSubscriptionStatusView,
 )
 
 urlpatterns = [
@@ -43,4 +45,14 @@ urlpatterns = [
     path('hospitals/public/<int:pk>/', PublicHospitalDetailView.as_view(), name='public-hospital-detail'),
 
     path('hospital/appointments/', HospitalAppointmentsView.as_view(), name='hospital-appointments'),
+
+    path('hospital/doctors/', HospitalDoctorsView.as_view(), name='hospital-doctors'),
+    path('hospital/stats/', HospitalStatsView.as_view(), name='hospital-stats'),
+    
+    path('hospital/services/', HospitalServiceListCreateView.as_view(), name='hospital-services'),
+    path('hospital/services/<int:pk>/', HospitalServiceDetailView.as_view(), name='hospital-service-detail'),
+
+    path('admin/subscriptions/', AdminSubscriptionListView.as_view(), name='admin-subscriptions'),
+    path('admin/subscriptions/<int:pk>/status/', AdminSubscriptionStatusView.as_view(), name='admin-subscription-status'),
+
 ]

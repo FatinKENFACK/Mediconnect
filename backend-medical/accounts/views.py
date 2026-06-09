@@ -14,7 +14,7 @@ from .serializers import (
 )
 from .models import Hospital
 from .serializers import DoctorProfileSerializer
-from rest_framework.permissions import IsAdminUser
+from .permissions import IsAdminRole, IsHospitalRole
 from .models import Hospital, Doctor
 from django.contrib.auth import get_user_model
 from appointments.models import Appointment
@@ -204,7 +204,7 @@ class DoctorRegisterView(generics.CreateAPIView):
 # ===================== ADMIN — Stats globales =====================
 # ===================== ADMIN — Stats globales =====================
 class AdminStatsView(APIView):
-    permission_classes = [permissions.IsAuthenticated, IsAdminUser]
+    permission_classes = [permissions.IsAuthenticated, IsAdminRole]
 
     def get(self, request):
         
@@ -349,7 +349,7 @@ class AdminStatsView(APIView):
 
 # ===================== ADMIN — Liste hôpitaux =====================
 class AdminHospitalListView(generics.ListAPIView):
-    permission_classes = [permissions.IsAuthenticated, IsAdminUser]
+    permission_classes = [permissions.IsAuthenticated, IsAdminRole]
     serializer_class = HospitalProfileSerializer
 
     def get_queryset(self):
@@ -358,7 +358,7 @@ class AdminHospitalListView(generics.ListAPIView):
 
 # ===================== ADMIN — Activer/Désactiver hôpital =====================
 class AdminHospitalStatusView(APIView):
-    permission_classes = [permissions.IsAuthenticated, IsAdminUser]
+    permission_classes = [permissions.IsAuthenticated, IsAdminRole]
 
     def patch(self, request, pk):
         try:
@@ -383,7 +383,7 @@ class AdminHospitalStatusView(APIView):
 
 # ===================== ADMIN — Liste médecins =====================
 class AdminDoctorListView(generics.ListAPIView):
-    permission_classes = [permissions.IsAuthenticated, IsAdminUser]
+    permission_classes = [permissions.IsAuthenticated, IsAdminRole]
     serializer_class = DoctorProfileSerializer
 
     def get_queryset(self):
@@ -393,7 +393,7 @@ class AdminDoctorListView(generics.ListAPIView):
 
 # ===================== ADMIN — Activer/Désactiver médecin =====================
 class AdminDoctorStatusView(APIView):
-    permission_classes = [permissions.IsAuthenticated, IsAdminUser]
+    permission_classes = [permissions.IsAuthenticated, IsAdminRole]
 
     def patch(self, request, pk):
         from .models import Doctor
@@ -473,3 +473,179 @@ class HospitalAppointmentsView(APIView):
         from appointments.serializers import AppointmentSerializer
         serializer = AppointmentSerializer(appointments, many=True)
         return Response(serializer.data)
+
+
+# ===================== HÔPITAL — Ses propres médecins =====================
+class HospitalDoctorsView(APIView):
+    permission_classes = [permissions.IsAuthenticated, IsHospitalRole]
+
+    def get(self, request):
+        try:
+            hospital = request.user.hospital
+        except Exception:
+            return Response({'error': 'Profil hôpital introuvable'}, status=403)
+
+        doctors = Doctor.objects.filter(
+            hospital=hospital
+        ).select_related('user')
+        serializer = DoctorProfileSerializer(doctors, many=True)
+        return Response(serializer.data)
+
+
+## ===================== HÔPITAL — Stats du dashboard =====================
+
+class HospitalStatsView(APIView):
+    permission_classes = [permissions.IsAuthenticated, IsHospitalRole]
+
+    def get(self, request):
+        try:
+            hospital = request.user.hospital
+        except Exception:
+            return Response({'error': 'Profil hôpital introuvable'}, status=403)
+
+        from appointments.models import Appointment
+        import datetime
+
+        doctors = Doctor.objects.filter(hospital=hospital)
+        doctor_ids = doctors.values_list('id', flat=True)
+        today = datetime.date.today()
+
+        all_rdv = Appointment.objects.filter(doctor_id__in=doctor_ids)
+
+        return Response({
+            # Médecins
+            'total_doctors':        doctors.count(),
+            'verified_doctors':     doctors.filter(is_verified=True).count(),
+
+            # RDV globaux
+            'total_appointments':   all_rdv.count(),
+            'today_appointments':   all_rdv.filter(date=today).count(),
+
+            # RDV par statut — NOUVEAUX CHAMPS utilisés par HospitalStatistics
+            'pending_appointments':   all_rdv.filter(status='pending').count(),
+            'confirmed_appointments': all_rdv.filter(status='confirmed').count(),
+            'completed_appointments': all_rdv.filter(status='completed').count(),
+            'cancelled_appointments': all_rdv.filter(status='cancelled').count(),
+        })
+    
+
+class HospitalServiceListCreateView(APIView):
+    permission_classes = [permissions.IsAuthenticated, IsHospitalRole]
+ 
+    def get_hospital(self, request):
+        try:
+            return request.user.hospital
+        except Exception:
+            return None
+ 
+    def get(self, request):
+        hospital = self.get_hospital(request)
+        if not hospital:
+            return Response({'error': 'Profil hôpital introuvable'}, status=403)
+        from .models import Service
+        from .serializers import ServiceSerializer
+        services = Service.objects.filter(hospital=hospital)
+        return Response(ServiceSerializer(services, many=True).data)
+ 
+    def post(self, request):
+        hospital = self.get_hospital(request)
+        if not hospital:
+            return Response({'error': 'Profil hôpital introuvable'}, status=403)
+        from .serializers import ServiceSerializer
+        serializer = ServiceSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save(hospital=hospital)
+            return Response(serializer.data, status=201)
+        return Response(serializer.errors, status=400)
+ 
+ 
+
+class HospitalServiceDetailView(APIView):
+    permission_classes = [permissions.IsAuthenticated, IsHospitalRole]
+ 
+    def get_object(self, pk, request):
+        from .models import Service
+        try:
+            service = Service.objects.get(pk=pk)
+            if service.hospital != request.user.hospital:
+                return None
+            return service
+        except Service.DoesNotExist:
+            return None
+ 
+    def get(self, request, pk):
+        from .serializers import ServiceSerializer
+        service = self.get_object(pk, request)
+        if not service:
+            return Response({'error': 'Service introuvable'}, status=404)
+        return Response(ServiceSerializer(service).data)
+ 
+    def patch(self, request, pk):
+        from .serializers import ServiceSerializer
+        service = self.get_object(pk, request)
+        if not service:
+            return Response({'error': 'Service introuvable'}, status=404)
+        serializer = ServiceSerializer(service, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        return Response(serializer.errors, status=400)
+ 
+    def delete(self, request, pk):
+        service = self.get_object(pk, request)
+        if not service:
+            return Response({'error': 'Service introuvable'}, status=404)
+        service.delete()
+        return Response(status=204)
+
+
+# ===================== ADMIN — Liste abonnements =====================
+class AdminSubscriptionListView(APIView):
+    permission_classes = [permissions.IsAuthenticated, IsAdminRole]
+
+    def get(self, request):
+        from .models import Subscription
+        from .serializers import SubscriptionSerializer
+        subscriptions = Subscription.objects.select_related(
+            'hospital'
+        ).all().order_by('-created_at')
+        serializer = SubscriptionSerializer(subscriptions, many=True)
+        return Response(serializer.data)
+
+
+# ===================== ADMIN — Modifier statut abonnement =====================
+class AdminSubscriptionStatusView(APIView):
+    permission_classes = [permissions.IsAuthenticated, IsAdminRole]
+
+    def patch(self, request, pk):
+        from .models import Subscription
+        from .serializers import SubscriptionSerializer
+        try:
+            subscription = Subscription.objects.get(pk=pk)
+        except Subscription.DoesNotExist:
+            return Response({'error': 'Abonnement introuvable'}, status=404)
+
+        action = request.data.get('action')
+        if action == 'activate':
+            subscription.status = 'active'
+        elif action == 'suspend':
+            subscription.status = 'suspended'
+        elif action == 'cancel':
+            subscription.status = 'cancelled'
+        else:
+            # Mise à jour directe des champs
+            allowed = ['plan', 'status', 'billing_cycle', 'price',
+                       'start_date', 'end_date', 'auto_renew']
+            for field in allowed:
+                if field in request.data:
+                    setattr(subscription, field, request.data[field])
+
+        subscription.save()
+        return Response(SubscriptionSerializer(subscription).data)
+
+
+
+
+
+
+

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import api from '../../services/api';
 import {
   CreditCardIcon,
   MagnifyingGlassIcon,
@@ -25,97 +26,15 @@ const SubscriptionManagement = () => {
   const [selectedSubscription, setSelectedSubscription] = useState(null);
 
   useEffect(() => {
-    // Simuler le chargement des abonnements
-    setSubscriptions([
-      {
-        id: 1,
-        hospitalId: 1,
-        hospitalName: 'Clinique Saint-Jean',
-        hospitalEmail: 'contact@clinique-saintjean.com',
-        plan: 'Professional',
-        status: 'active',
-        startDate: '2024-01-15',
-        endDate: '2024-04-15',
-        price: 150000,
-        billingCycle: 'monthly',
-        autoRenew: true,
-        doctorsUsed: 15,
-        doctorsLimit: 20,
-        consultationsUsed: 342,
-        consultationsLimit: 500,
-        nextBillingDate: '2024-04-15',
-        paymentMethod: 'credit_card',
-        lastPaymentDate: '2024-03-15',
-        totalPaid: 450000,
-        revenue: 150000
-      },
-      {
-        id: 2,
-        hospitalId: 2,
-        hospitalName: 'Hôpital Principal de Dakar',
-        hospitalEmail: 'info@hopitalprincipal.sn',
-        plan: 'Enterprise',
-        status: 'active',
-        startDate: '2023-06-20',
-        endDate: '2024-06-20',
-        price: 500000,
-        billingCycle: 'monthly',
-        autoRenew: true,
-        doctorsUsed: 45,
-        doctorsLimit: -1, // Illimité
-        consultationsUsed: 1240,
-        consultationsLimit: -1, // Illimité
-        nextBillingDate: '2024-04-20',
-        paymentMethod: 'bank_transfer',
-        lastPaymentDate: '2024-03-20',
-        totalPaid: 6000000,
-        revenue: 500000
-      },
-      {
-        id: 3,
-        hospitalId: 3,
-        hospitalName: 'Polyclininique du Sénégal',
-        hospitalEmail: 'contact@polyclinique.sn',
-        plan: 'Basic',
-        status: 'suspended',
-        startDate: '2023-11-10',
-        endDate: '2024-03-10',
-        price: 50000,
-        billingCycle: 'monthly',
-        autoRenew: false,
-        doctorsUsed: 8,
-        doctorsLimit: 5,
-        consultationsUsed: 89,
-        consultationsLimit: 100,
-        nextBillingDate: null,
-        paymentMethod: 'mobile_money',
-        lastPaymentDate: '2024-02-10',
-        totalPaid: 200000,
-        revenue: 0
-      },
-      {
-        id: 4,
-        hospitalId: 4,
-        hospitalName: 'Centre Médical Dalal Jamm',
-        hospitalEmail: 'dalaljamm@medic.sn',
-        plan: 'Basic',
-        status: 'pending',
-        startDate: null,
-        endDate: null,
-        price: 50000,
-        billingCycle: 'monthly',
-        autoRenew: false,
-        doctorsUsed: 3,
-        doctorsLimit: 5,
-        consultationsUsed: 0,
-        consultationsLimit: 100,
-        nextBillingDate: null,
-        paymentMethod: null,
-        lastPaymentDate: null,
-        totalPaid: 0,
-        revenue: 0
+    const loadSubscriptions = async () => {
+      try {
+        const data = await api.getAdminSubscriptions();
+        setSubscriptions(Array.isArray(data) ? data : []);
+      } catch (err) {
+        console.error('Erreur chargement abonnements:', err);
       }
-    ]);
+    };
+    loadSubscriptions();
   }, []);
 
   const getStatusBadge = (status) => {
@@ -133,7 +52,7 @@ const SubscriptionManagement = () => {
       cancelled: 'Annulé',
       expired: 'Expiré'
     };
-    
+
     return (
       <span className={`px-2 py-1 text-xs font-medium rounded-full ${styles[status]}`}>
         {labels[status]}
@@ -147,7 +66,7 @@ const SubscriptionManagement = () => {
       Professional: 'bg-blue-100 text-blue-800',
       Enterprise: 'bg-purple-100 text-purple-800'
     };
-    
+
     return (
       <span className={`px-2 py-1 text-xs font-medium rounded-full ${styles[plan]}`}>
         {plan}
@@ -168,10 +87,10 @@ const SubscriptionManagement = () => {
 
   const filteredSubscriptions = subscriptions.filter(subscription => {
     const matchesSearch = subscription.hospitalName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         subscription.hospitalEmail.toLowerCase().includes(searchQuery.toLowerCase());
+      subscription.hospitalEmail.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesStatus = filterStatus === 'all' || subscription.status === filterStatus;
     const matchesPlan = filterPlan === 'all' || subscription.plan === filterPlan;
-    
+
     return matchesSearch && matchesStatus && matchesPlan;
   });
 
@@ -191,9 +110,8 @@ const SubscriptionManagement = () => {
           <p className="text-sm font-medium text-gray-600">{title}</p>
           <p className="text-2xl font-bold text-gray-900 mt-2">{value}</p>
           {change && (
-            <div className={`flex items-center mt-2 text-sm ${
-              changeType === 'positive' ? 'text-green-600' : 'text-red-600'
-            }`}>
+            <div className={`flex items-center mt-2 text-sm ${changeType === 'positive' ? 'text-green-600' : 'text-red-600'
+              }`}>
               {changeType === 'positive' ? (
                 <ArrowTrendingUpIcon className="h-4 w-4 mr-1" />
               ) : (
@@ -361,7 +279,7 @@ const SubscriptionManagement = () => {
                       </div>
                       {subscription.doctorsLimit !== -1 && (
                         <div className="w-full bg-gray-200 rounded-full h-1.5">
-                          <div 
+                          <div
                             className={`bg-${getUsageColor(getUsagePercentage(subscription.doctorsUsed, subscription.doctorsLimit))}-500 h-1.5 rounded-full`}
                             style={{ width: `${getUsagePercentage(subscription.doctorsUsed, subscription.doctorsLimit)}%` }}
                           />
@@ -375,7 +293,7 @@ const SubscriptionManagement = () => {
                       </div>
                       {subscription.consultationsLimit !== -1 && (
                         <div className="w-full bg-gray-200 rounded-full h-1.5">
-                          <div 
+                          <div
                             className={`bg-${getUsageColor(getUsagePercentage(subscription.consultationsUsed, subscription.consultationsLimit))}-500 h-1.5 rounded-full`}
                             style={{ width: `${getUsagePercentage(subscription.consultationsUsed, subscription.consultationsLimit)}%` }}
                           />
@@ -413,6 +331,12 @@ const SubscriptionManagement = () => {
                       </button>
                       {subscription.status === 'active' && (
                         <button
+                          onClick={async () => {
+                            await api.updateSubscriptionStatus(subscription.id, 'suspend');
+                            setSubscriptions(prev =>
+                              prev.map(s => s.id === subscription.id ? { ...s, status: 'suspended' } : s)
+                            );
+                          }}
                           className="text-yellow-600 hover:text-yellow-800"
                           title="Suspendre"
                         >
@@ -421,6 +345,12 @@ const SubscriptionManagement = () => {
                       )}
                       {subscription.status === 'suspended' && (
                         <button
+                          onClick={async () => {
+                            await api.updateSubscriptionStatus(subscription.id, 'activate');
+                            setSubscriptions(prev =>
+                              prev.map(s => s.id === subscription.id ? { ...s, status: 'active' } : s)
+                            );
+                          }}
                           className="text-green-600 hover:text-green-800"
                           title="Réactiver"
                         >
@@ -449,7 +379,7 @@ const SubscriptionManagement = () => {
                 <XCircleIcon className="h-6 w-6" />
               </button>
             </div>
-            
+
             <div className="space-y-6">
               {/* Hospital Info */}
               <div className="grid grid-cols-2 gap-4">
@@ -482,7 +412,7 @@ const SubscriptionManagement = () => {
                     </div>
                     {selectedSubscription.doctorsLimit !== -1 && (
                       <div className="w-full bg-gray-200 rounded-full h-2">
-                        <div 
+                        <div
                           className={`bg-${getUsageColor(getUsagePercentage(selectedSubscription.doctorsUsed, selectedSubscription.doctorsLimit))}-500 h-2 rounded-full`}
                           style={{ width: `${getUsagePercentage(selectedSubscription.doctorsUsed, selectedSubscription.doctorsLimit)}%` }}
                         />
@@ -498,7 +428,7 @@ const SubscriptionManagement = () => {
                     </div>
                     {selectedSubscription.consultationsLimit !== -1 && (
                       <div className="w-full bg-gray-200 rounded-full h-2">
-                        <div 
+                        <div
                           className={`bg-${getUsageColor(getUsagePercentage(selectedSubscription.consultationsUsed, selectedSubscription.consultationsLimit))}-500 h-2 rounded-full`}
                           style={{ width: `${getUsagePercentage(selectedSubscription.consultationsUsed, selectedSubscription.consultationsLimit)}%` }}
                         />

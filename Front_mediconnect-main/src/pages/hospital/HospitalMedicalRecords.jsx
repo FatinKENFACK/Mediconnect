@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import api from '../../services/api';
 import {
   FolderIcon,
   MagnifyingGlassIcon,
@@ -22,52 +23,29 @@ const HospitalMedicalRecords = () => {
   const [selectedRecord, setSelectedRecord] = useState(null);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
 
+  
+ 
   useEffect(() => {
-    const mockRecords = [
-      {
-        id: 1,
-        patient: {
-          name: 'Jean Dupont',
-          email: 'jean.dupont@email.com',
-          phone: '+221 77 123 45 67',
-          dateOfBirth: '1985-03-15',
-          bloodType: 'A+',
-          allergies: ['Pénicilline', 'Arachides'],
-          chronicDiseases: ['Hypertension', 'Diabète type 2']
-        },
-        doctor: 'Dr. Martin Laurent',
-        service: 'Cardiologie',
-        lastVisit: '2024-01-10',
-        status: 'active',
-        documents: [
-          { id: 1, name: 'Rapport de consultation', date: '2024-01-10', type: 'consultation' },
-          { id: 2, name: 'Résultats d\'analyse', date: '2024-01-08', type: 'analysis' },
-          { id: 3, name: 'Ordonnance', date: '2024-01-10', type: 'prescription' }
-        ],
-        treatments: [
-          { name: 'Lisinopril', dosage: '10mg/jour', started: '2023-12-01' },
-          { name: 'Metformine', dosage: '500mg 2x/jour', started: '2023-11-15' }
-        ],
-        vitalSigns: {
-          bloodPressure: '130/80',
-          heartRate: '72',
-          weight: '78kg',
-          height: '175cm'
-        },
-        notes: 'Patient stable, bonne observance du traitement'
+    const loadRecords = async () => {
+      try {
+        const data = await api.getHospitalPatientRecords();
+        setRecords(Array.isArray(data) ? data : []);
+      } catch (err) {
+        console.error('Erreur chargement dossiers:', err);
+        setRecords([]);
       }
-    ];
-    setRecords(mockRecords);
+    };
+    loadRecords();
   }, []);
 
   const filteredRecords = records.filter(record => {
     const matchesSearch = record.patient.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         record.patient.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         record.service.toLowerCase().includes(searchQuery.toLowerCase());
-    
+      record.patient.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      record.service.toLowerCase().includes(searchQuery.toLowerCase());
+
     const matchesStatus = filterStatus === 'all' || record.status === filterStatus;
     const matchesDoctor = filterDoctor === 'all' || record.doctor === filterDoctor;
-    
+
     return matchesSearch && matchesStatus && matchesDoctor;
   });
 
@@ -77,7 +55,7 @@ const HospitalMedicalRecords = () => {
       archived: { color: 'bg-gray-100 text-gray-800', label: 'Archivé' },
       emergency: { color: 'bg-red-100 text-red-800', label: 'Urgence' }
     };
-    
+
     const config = statusConfig[status] || statusConfig.active;
     return (
       <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${config.color}`}>
@@ -265,7 +243,7 @@ const HospitalMedicalRecords = () => {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-6 max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto">
             <h3 className="text-xl font-medium text-gray-900 mb-6">Dossier médical - {selectedRecord.patient.name}</h3>
-            
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* Patient Information */}
               <div className="bg-gray-50 p-4 rounded-lg">

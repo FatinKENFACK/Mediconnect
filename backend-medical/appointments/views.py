@@ -371,3 +371,75 @@ class CompteRenduDetailView(APIView):
             return Response({'error': 'Introuvable ou non autorisé'}, status=404)
         cr.delete()
         return Response(status=drf_status.HTTP_204_NO_CONTENT)
+
+# -------- DOSSIERS PATIENTS (vue hôpital) --------
+
+class HospitalPatientRecordsView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        try:
+            hospital = request.user.hospital
+        except Exception:
+            return Response({'error': 'Profil hôpital introuvable'}, status=403)
+
+        from accounts.models import Doctor
+        from django.contrib.auth import get_user_model
+        User = get_user_model()
+
+        # Tous les médecins de l'hôpital
+        doctor_ids = Doctor.objects.filter(
+            hospital=hospital
+        ).values_list('id', flat=True)
+
+        # Tous les patients distincts ayant un RDV avec ces médecins
+        patient_ids = Appointment.objects.filter(
+            doctor_id__in=doctor_ids
+        ).values_list('patient_id', flat=True).distinct()
+
+        patients = User.objects.filter(id__in=patient_ids)
+
+        result = []
+        for patient in patients:
+            # RDV du patient avec les médecins de l'hôpital
+            rdvs = Appointment.objects.filter(
+                patient=patient,
+                doctor_id__in=doctor_ids
+            ).order_by('-date')
+
+            # Dernier RDV
+            last_rdv = rdvs.first()
+
+            # Comptes-rendus
+            comptes_rendus = CompteRendu.objects.filter(
+                patient=patient,
+                doctor_id__in=doctor_ids
+            ).order_by('-date')
+
+            # Prescriptions
+            prescriptions = Prescription.objects.filter(
+                patient=patient,
+                doctor_id__in=doctor_ids
+            ).order_by('-date')
+
+            result.append({
+                'id': patient.id,
+                'patient': {
+                    'id':           patient.id,
+                    'name':         f"{patient.first_name} {patient.last_name}",
+                    'email':        patient.email,
+                    'phone':        patient.phone or '',
+                    'date_of_birth':str(patient.date_of_birth) if patient.date_of_birth else '',
+                    'gender':       patient.gender or '',
+                    'city':         patient.city or '',
+                },
+                'last_visit':        str(last_rdv.date) if last_rdv else None,
+                'total_appointments':rdvs.count(),
+                'total_records':     comptes_rendus.count(),
+                'total_prescriptions':prescriptions.count(),
+                'appointments': AppointmentSerializer(rdvs[:5], many=True).data,
+                'comptes_rendus': CompteRenduSerializer(comptes_rendus[:3], many=True).data,
+                'prescriptions':  PrescriptionSerializer(prescriptions[:3], many=True).data,
+            })
+
+        return Response(result)

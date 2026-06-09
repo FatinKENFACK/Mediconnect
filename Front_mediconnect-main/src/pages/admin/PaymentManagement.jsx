@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import api from '../../services/api';
 import {
   CurrencyDollarIcon,
   MagnifyingGlassIcon,
@@ -26,152 +27,15 @@ const PaymentManagement = () => {
   const [showExportModal, setShowExportModal] = useState(false);
 
   useEffect(() => {
-    // Simuler le chargement des paiements
-    setPayments([
-      {
-        id: 'PAY-001',
-        hospitalId: 1,
-        hospitalName: 'Clinique Saint-Jean',
-        hospitalEmail: 'contact@clinique-saintjean.com',
-        amount: 150000,
-        currency: 'FCFA',
-        status: 'completed',
-        method: 'credit_card',
-        methodDetails: {
-          cardType: 'Visa',
-          last4: '4242',
-          expiryDate: '12/25'
-        },
-        date: '2024-03-15',
-        time: '14:30:00',
-        type: 'subscription',
-        subscriptionId: 1,
-        plan: 'Professional',
-        billingCycle: 'monthly',
-        description: 'Abonnement Professional - Mars 2024',
-        transactionId: 'txn_3QxYZ2eZvKYlo2C91',
-        invoiceId: 'INV-2024-001',
-        refundable: true,
-        refunded: false,
-        processingFee: 4500,
-        netAmount: 145500
-      },
-      {
-        id: 'PAY-002',
-        hospitalId: 2,
-        hospitalName: 'Hôpital Principal de Dakar',
-        hospitalEmail: 'info@hopitalprincipal.sn',
-        amount: 500000,
-        currency: 'FCFA',
-        status: 'completed',
-        method: 'bank_transfer',
-        methodDetails: {
-          bankName: 'Banque Atlantique Sénégal',
-          accountNumber: '****1234',
-          reference: 'BANK-REF-789'
-        },
-        date: '2024-03-20',
-        time: '09:15:00',
-        type: 'subscription',
-        subscriptionId: 2,
-        plan: 'Enterprise',
-        billingCycle: 'monthly',
-        description: 'Abonnement Enterprise - Mars 2024',
-        transactionId: 'txn_3QxYZ2eZvKYlo2C92',
-        invoiceId: 'INV-2024-002',
-        refundable: true,
-        refunded: false,
-        processingFee: 0,
-        netAmount: 500000
-      },
-      {
-        id: 'PAY-003',
-        hospitalId: 3,
-        hospitalName: 'Polyclininique du Sénégal',
-        hospitalEmail: 'contact@polyclinique.sn',
-        amount: 50000,
-        currency: 'FCFA',
-        status: 'failed',
-        method: 'mobile_money',
-        methodDetails: {
-          operator: 'Orange Money',
-          phoneNumber: '+221 77 123 45 67',
-          transactionId: 'OM-123456'
-        },
-        date: '2024-03-10',
-        time: '16:45:00',
-        type: 'subscription',
-        subscriptionId: 3,
-        plan: 'Basic',
-        billingCycle: 'monthly',
-        description: 'Abonnement Basic - Mars 2024',
-        transactionId: null,
-        invoiceId: 'INV-2024-003',
-        refundable: false,
-        refunded: false,
-        processingFee: 1500,
-        netAmount: 0,
-        failureReason: 'Fonds insuffisants'
-      },
-      {
-        id: 'PAY-004',
-        hospitalId: 1,
-        hospitalName: 'Clinique Saint-Jean',
-        hospitalEmail: 'contact@clinique-saintjean.com',
-        amount: 150000,
-        currency: 'FCFA',
-        status: 'pending',
-        method: 'credit_card',
-        methodDetails: {
-          cardType: 'Mastercard',
-          last4: '5555',
-          expiryDate: '09/24'
-        },
-        date: '2024-03-25',
-        time: '11:20:00',
-        type: 'subscription',
-        subscriptionId: 1,
-        plan: 'Professional',
-        billingCycle: 'monthly',
-        description: 'Abonnement Professional - Avril 2024',
-        transactionId: 'txn_3QxYZ2eZvKYlo2C93',
-        invoiceId: 'INV-2024-004',
-        refundable: false,
-        refunded: false,
-        processingFee: 4500,
-        netAmount: 145500
-      },
-      {
-        id: 'PAY-005',
-        hospitalId: 2,
-        hospitalName: 'Hôpital Principal de Dakar',
-        hospitalEmail: 'info@hopitalprincipal.sn',
-        amount: 250000,
-        currency: 'FCFA',
-        status: 'refunded',
-        method: 'bank_transfer',
-        methodDetails: {
-          bankName: 'Société Générale Sénégal',
-          accountNumber: '****5678',
-          reference: 'BANK-REF-790'
-        },
-        date: '2024-03-05',
-        time: '13:00:00',
-        type: 'subscription',
-        subscriptionId: 2,
-        plan: 'Enterprise',
-        billingCycle: 'monthly',
-        description: 'Abonnement Enterprise - Février 2024',
-        transactionId: 'txn_3QxYZ2eZvKYlo2C94',
-        invoiceId: 'INV-2024-005',
-        refundable: false,
-        refunded: true,
-        processingFee: 0,
-        netAmount: -250000,
-        refundDate: '2024-03-12',
-        refundReason: 'Demande du client'
+    const loadPayments = async () => {
+      try {
+        const data = await api.getAdminPayments();
+        setPayments(Array.isArray(data) ? data : []);
+      } catch (err) {
+        console.error('Erreur chargement paiements:', err);
       }
-    ]);
+    };
+    loadPayments();
   }, []);
 
   const getStatusBadge = (status) => {
@@ -189,7 +53,7 @@ const PaymentManagement = () => {
       refunded: 'Remboursé',
       cancelled: 'Annulé'
     };
-    
+
     return (
       <span className={`px-2 py-1 text-xs font-medium rounded-full ${styles[status]}`}>
         {labels[status]}
@@ -217,7 +81,7 @@ const PaymentManagement = () => {
       mobile_money: 'Mobile Money',
       bank_transfer: 'Virement bancaire'
     };
-    
+
     return (
       <span className={`px-2 py-1 text-xs font-medium rounded-full ${styles[method]}`}>
         {labels[method]}
@@ -227,12 +91,12 @@ const PaymentManagement = () => {
 
   const filteredPayments = payments.filter(payment => {
     const matchesSearch = payment.hospitalName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         payment.hospitalEmail.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         payment.transactionId?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         payment.invoiceId.toLowerCase().includes(searchQuery.toLowerCase());
+      payment.hospitalEmail.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      payment.transactionId?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      payment.invoiceId.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesStatus = filterStatus === 'all' || payment.status === filterStatus;
     const matchesMethod = filterMethod === 'all' || payment.method === filterMethod;
-    
+
     return matchesSearch && matchesStatus && matchesMethod;
   });
 
@@ -260,9 +124,8 @@ const PaymentManagement = () => {
           <p className="text-sm font-medium text-gray-600">{title}</p>
           <p className="text-2xl font-bold text-gray-900 mt-2">{value}</p>
           {change && (
-            <div className={`flex items-center mt-2 text-sm ${
-              changeType === 'positive' ? 'text-green-600' : 'text-red-600'
-            }`}>
+            <div className={`flex items-center mt-2 text-sm ${changeType === 'positive' ? 'text-green-600' : 'text-red-600'
+              }`}>
               {change}
             </div>
           )}
@@ -475,8 +338,17 @@ const PaymentManagement = () => {
                         >
                           <CalendarIcon className="h-5 w-5" />
                         </button>
-                        {payment.status === 'completed' && payment.refundable && !payment.refunded && (
+                        {payment.status === 'completed' && !payment.refunded && (
                           <button
+                            onClick={async () => {
+                              await api.updatePaymentStatus(payment.id, 'refund');
+                              setPayments(prev =>
+                                prev.map(p => p.id === payment.id
+                                  ? { ...p, status: 'refunded', refunded: true }
+                                  : p
+                                )
+                              );
+                            }}
                             className="text-orange-600 hover:text-orange-800"
                             title="Rembourser"
                           >
@@ -514,7 +386,7 @@ const PaymentManagement = () => {
                 <XCircleIcon className="h-6 w-6" />
               </button>
             </div>
-            
+
             <div className="space-y-6">
               {/* Payment Info */}
               <div className="grid grid-cols-2 gap-4">
@@ -672,7 +544,7 @@ const PaymentManagement = () => {
                 <XCircleIcon className="h-6 w-6" />
               </button>
             </div>
-            
+
             <div className="space-y-4">
               <div>
                 <p className="text-sm text-gray-600 mb-4">Choisissez le format d'exportation:</p>
@@ -700,7 +572,7 @@ const PaymentManagement = () => {
                   </button>
                 </div>
               </div>
-              
+
               <div className="flex justify-end">
                 <button
                   onClick={() => setShowExportModal(false)}

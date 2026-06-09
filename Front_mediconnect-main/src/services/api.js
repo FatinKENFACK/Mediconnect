@@ -278,6 +278,18 @@ const getHospitalProfile = async () => {
   return await request('/accounts/hospital/profile/');
 };
 
+// Médecins de l'hôpital connecté
+// GET /api/accounts/hospital/doctors/
+const getHospitalDoctors = async () => {
+  return await request('/accounts/hospital/doctors/');
+};
+
+// Stats du dashboard hôpital
+// GET /api/accounts/hospital/stats/
+const getHospitalStats = async () => {
+  return await request('/accounts/hospital/stats/');
+};
+
 // Met à jour le profil hôpital
 const updateHospitalProfile = async (data) => {
   return await request('/accounts/hospital/profile/', {
@@ -314,6 +326,28 @@ const updateDoctorStatus = async (id, action) => {
   });
 };
 
+// Abonnements
+const getAdminSubscriptions = async () => {
+  return await request('/accounts/admin/subscriptions/');
+};
+
+const updateSubscriptionStatus = async (id, action) => {
+  return await request(`/accounts/admin/subscriptions/${id}/status/`, {
+    method: 'PATCH',
+    body: JSON.stringify({ action }),
+  });
+};
+
+const getAdminPayments = async () => {
+  return await request('/payments/');
+};
+
+const updatePaymentStatus = async (id, action, reason = '') => {
+  return await request(`/payments/${id}/`, {
+    method: 'PATCH',
+    body: JSON.stringify({ action, reason }),
+  });
+};
 // Récupère le profil du médecin connecté
 const getDoctorProfile = async () => {
   return await request('/accounts/doctor/profile/');
@@ -633,6 +667,11 @@ const getCompteRendu = async (id) => {
 const getHospitalAppointments = async () => {
   return await request('/accounts/hospital/appointments/');
 };
+// Dossiers patients de l'hôpital
+// GET /api/appointments/hospital/patient-records/
+const getHospitalPatientRecords = async () => {
+  return await request('/appointments/hospital/patient-records/');
+};
 
 // ================= MESSAGING =================
 
@@ -738,12 +777,21 @@ const api = {
   deleteCompteRendu,
   getCompteRendu,
 
+  getHospitalDoctors,
+  getHospitalStats,
   getHospitalAppointments,
   getConversations,
   createConversation,
   getConversation,
   sendMessage, 
   deleteConversation,
+
+  getAdminSubscriptions,
+  updateSubscriptionStatus,
+  getHospitalPatientRecords,
+
+  getAdminPayments,
+  updatePaymentStatus,
 };
 
 export default api;

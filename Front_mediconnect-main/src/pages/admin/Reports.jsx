@@ -1,587 +1,376 @@
 import React, { useState, useEffect } from 'react';
 import {
-  ChartBarIcon,
-  DocumentArrowDownIcon,
-  CalendarIcon,
-  ArrowTrendingUpIcon,
-  ArrowTrendingDownIcon,
-  BuildingOfficeIcon,
-  UserGroupIcon,
-  CurrencyDollarIcon,
-  ServerIcon,
-  FunnelIcon,
-  PrinterIcon,
-  EyeIcon,
-  XCircleIcon
+  ChartBarIcon, CalendarIcon, BuildingOfficeIcon,
+  UserGroupIcon, ArrowPathIcon, ExclamationTriangleIcon,
+  CheckCircleIcon, ClockIcon, XCircleIcon,
 } from '@heroicons/react/24/outline';
+import api from '../../services/api';
 
+// ============================================================
+// COMPOSANT : Carte stat
+// ============================================================
+const StatCard = ({ title, value, subtitle, icon: Icon, colorClass }) => (
+  <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+    <div className="flex items-center justify-between">
+      <div>
+        <p className="text-sm font-medium text-gray-600">{title}</p>
+        <p className="text-2xl font-bold text-gray-900 mt-1">{value}</p>
+        {subtitle && <p className="text-xs text-gray-500 mt-1">{subtitle}</p>}
+      </div>
+      <div className={`p-3 rounded-lg ${colorClass}`}>
+        <Icon className="h-6 w-6 text-white" />
+      </div>
+    </div>
+  </div>
+);
+
+const SkeletonCard = () => (
+  <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 animate-pulse">
+    <div className="flex items-center justify-between">
+      <div className="flex-1">
+        <div className="h-3 bg-gray-200 rounded w-24 mb-2"></div>
+        <div className="h-7 bg-gray-200 rounded w-16 mb-1"></div>
+        <div className="h-3 bg-gray-100 rounded w-32"></div>
+      </div>
+      <div className="h-12 w-12 bg-gray-200 rounded-lg"></div>
+    </div>
+  </div>
+);
+
+// ============================================================
+// COMPOSANT PRINCIPAL : Reports
+// ============================================================
 const Reports = () => {
-  const [reports, setReports] = useState([]);
-  const [selectedPeriod, setSelectedPeriod] = useState('month');
-  const [selectedReport, setSelectedReport] = useState(null);
-  const [showPreviewModal, setShowPreviewModal] = useState(false);
-  const [reportData, setReportData] = useState({
-    revenue: [],
-    hospitals: [],
-    users: [],
-    subscriptions: [],
-    performance: []
-  });
+  const [loading, setLoading]           = useState(true);
+  const [error, setError]               = useState(null);
+  const [lastRefresh, setLastRefresh]   = useState(null);
+  const [stats, setStats]               = useState(null);
+  const [activities, setActivities]     = useState([]);
 
-  useEffect(() => {
-    // Simuler le chargement des rapports disponibles
-    setReports([
-      {
-        id: 'revenue-monthly',
-        name: 'Rapport de revenus mensuel',
-        description: 'Analyse détaillée des revenus par mois',
-        category: 'financial',
-        frequency: 'monthly',
-        lastGenerated: '2024-03-01',
-        format: ['pdf', 'excel'],
-        icon: CurrencyDollarIcon,
-        color: 'green',
-        metrics: {
-          totalRevenue: 12500000,
-          growth: 15.2,
-          subscriptions: 142,
-          averageRevenue: 88028
-        }
-      },
-      {
-        id: 'hospital-performance',
-        name: 'Performance des hôpitaux',
-        description: 'Statistiques détaillées par hôpital',
-        category: 'operational',
-        frequency: 'monthly',
-        lastGenerated: '2024-03-05',
-        format: ['pdf', 'excel', 'csv'],
-        icon: BuildingOfficeIcon,
-        color: 'blue',
-        metrics: {
-          totalHospitals: 156,
-          activeHospitals: 142,
-          averagePatients: 293,
-          topPerformer: 'Hôpital Principal de Dakar'
-        }
-      },
-      {
-        id: 'user-analytics',
-        name: 'Analytique des utilisateurs',
-        description: 'Tendances d\'utilisation et engagement',
-        category: 'user',
-        frequency: 'weekly',
-        lastGenerated: '2024-03-10',
-        format: ['pdf', 'csv'],
-        icon: UserGroupIcon,
-        color: 'purple',
-        metrics: {
-          totalUsers: 45678,
-          activeUsers: 12450,
-          newUsers: 234,
-          retentionRate: 78.5
-        }
-      },
-      {
-        id: 'subscription-trends',
-        name: 'Tendances des abonnements',
-        description: 'Évolution des abonnements et plans',
-        category: 'financial',
-        frequency: 'monthly',
-        lastGenerated: '2024-03-01',
-        format: ['pdf', 'excel'],
-        icon: ChartBarIcon,
-        color: 'yellow',
-        metrics: {
-          totalSubscriptions: 142,
-          newSubscriptions: 12,
-          churnRate: 2.1,
-          averageLifetime: 18.5
-        }
-      },
-      {
-        id: 'system-performance',
-        name: 'Performance système',
-        description: 'Métriques techniques et uptime',
-        category: 'technical',
-        frequency: 'daily',
-        lastGenerated: '2024-03-25',
-        format: ['pdf', 'json'],
-        icon: ServerIcon,
-        color: 'red',
-        metrics: {
-          uptime: 99.8,
-          responseTime: 245,
-          errorRate: 0.2,
-          storageUsage: 67
-        }
-      },
-      {
-        id: 'patient-demographics',
-        name: 'Démographie des patients',
-        description: 'Analyse des données patients (anonymisées)',
-        category: 'clinical',
-        frequency: 'quarterly',
-        lastGenerated: '2024-01-15',
-        format: ['pdf', 'csv'],
-        icon: UserGroupIcon,
-        color: 'indigo',
-        metrics: {
-          totalPatients: 45678,
-          averageAge: 34.2,
-          genderDistribution: '52% F, 48% M',
-          topSpecialties: ['Cardiologie', 'Médecine générale', 'Pédiatrie']
-        }
-      }
-    ]);
-
-    // Simuler le chargement des données de rapports
-    setReportData({
-      revenue: [
-        { month: 'Jan', revenue: 10500000, subscriptions: 125 },
-        { month: 'Fev', revenue: 11200000, subscriptions: 132 },
-        { month: 'Mar', revenue: 12500000, subscriptions: 142 }
-      ],
-      hospitals: [
-        { name: 'Hôpital Principal de Dakar', patients: 5600, consultations: 12400, revenue: 500000 },
-        { name: 'Clinique Saint-Jean', patients: 1250, consultations: 3420, revenue: 150000 },
-        { name: 'Polyclininique du Sénégal', patients: 450, consultations: 890, revenue: 50000 }
-      ],
-      users: [
-        { type: 'Patients', count: 45678, growth: 12.3 },
-        { type: 'Médecins', count: 1234, growth: 8.7 },
-        { type: 'Admins', count: 12, growth: 0 }
-      ],
-      subscriptions: [
-        { plan: 'Basic', count: 45, revenue: 2250000 },
-        { plan: 'Professional', count: 85, revenue: 12750000 },
-        { plan: 'Enterprise', count: 12, revenue: 6000000 }
-      ],
-      performance: [
-        { metric: 'Uptime', value: 99.8, target: 99.5 },
-        { metric: 'Response Time', value: 245, target: 300 },
-        { metric: 'Error Rate', value: 0.2, target: 1.0 }
-      ]
-    });
-  }, []);
-
-  const getCategoryBadge = (category) => {
-    const styles = {
-      financial: 'bg-green-100 text-green-800',
-      operational: 'bg-blue-100 text-blue-800',
-      user: 'bg-purple-100 text-purple-800',
-      technical: 'bg-red-100 text-red-800',
-      clinical: 'bg-indigo-100 text-indigo-800'
-    };
-    const labels = {
-      financial: 'Financier',
-      operational: 'Opérationnel',
-      user: 'Utilisateur',
-      technical: 'Technique',
-      clinical: 'Clinique'
-    };
-    
-    return (
-      <span className={`px-2 py-1 text-xs font-medium rounded-full ${styles[category]}`}>
-        {labels[category]}
-      </span>
-    );
+  const loadData = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const data = await api.getAdminStats();
+      setStats(data);
+      setActivities(data.recent_activities || []);
+      setLastRefresh(new Date());
+    } catch {
+      setError('Impossible de charger les données. Vérifiez votre connexion.');
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const getFrequencyBadge = (frequency) => {
-    const styles = {
-      daily: 'bg-orange-100 text-orange-800',
-      weekly: 'bg-blue-100 text-blue-800',
-      monthly: 'bg-green-100 text-green-800',
-      quarterly: 'bg-purple-100 text-purple-800',
-      yearly: 'bg-gray-100 text-gray-800'
-    };
-    const labels = {
-      daily: 'Quotidien',
-      weekly: 'Hebdomadaire',
-      monthly: 'Mensuel',
-      quarterly: 'Trimestriel',
-      yearly: 'Annuel'
-    };
-    
-    return (
-      <span className={`px-2 py-1 text-xs font-medium rounded-full ${styles[frequency]}`}>
-        {labels[frequency]}
-      </span>
-    );
-  };
+  useEffect(() => { loadData(); }, []);
 
-  const handleGenerateReport = (reportId) => {
-    // Logique de génération de rapport
-    console.log(`Generating report: ${reportId}`);
-  };
+  // ============================================================
+  // CALCULS DÉRIVÉS
+  // ============================================================
+  const tauxActivation = stats
+    ? stats.total_hospitals > 0
+      ? Math.round((stats.active_hospitals / stats.total_hospitals) * 100)
+      : 0
+    : 0;
 
-  const handlePreviewReport = (report) => {
-    setSelectedReport(report);
-    setShowPreviewModal(true);
-  };
+  const tauxAttente = stats
+    ? stats.total_appointments > 0
+      ? Math.round((stats.pending_appointments / stats.total_appointments) * 100)
+      : 0
+    : 0;
 
-  const filteredReports = reports.filter(report => {
-    // Filtrer par période si nécessaire
-    return true;
-  });
+  const totalUsers = stats
+    ? (stats.total_patients || 0) + (stats.total_doctors || 0)
+    : 0;
 
-  const stats = {
-    totalReports: reports.length,
-    monthlyReports: reports.filter(r => r.frequency === 'monthly').length,
-    weeklyReports: reports.filter(r => r.frequency === 'weekly').length,
-    dailyReports: reports.filter(r => r.frequency === 'daily').length
-  };
-
+  // ============================================================
+  // RENDER
+  // ============================================================
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex justify-between items-center">
+
+      {/* ====== HEADER ====== */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Rapports et analyses</h1>
-          <p className="text-gray-600 mt-2">Générez et analysez les performances du système</p>
+          <p className="text-gray-500 mt-1 text-sm">
+            Vue d'ensemble des performances de la plateforme
+            {lastRefresh && (
+              <span className="ml-2 text-gray-400">
+                · Mis à jour à {lastRefresh.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
+              </span>
+            )}
+          </p>
         </div>
-        <div className="flex items-center space-x-2">
-          <select
-            value={selectedPeriod}
-            onChange={(e) => setSelectedPeriod(e.target.value)}
-            className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          >
-            <option value="week">Cette semaine</option>
-            <option value="month">Ce mois</option>
-            <option value="quarter">Ce trimestre</option>
-            <option value="year">Cette année</option>
-          </select>
-          <button className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
-            <DocumentArrowDownIcon className="h-5 w-5 mr-2" />
-            Générer tout
+        <button
+          onClick={loadData}
+          disabled={loading}
+          className="inline-flex items-center gap-2 px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50"
+        >
+          <ArrowPathIcon className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+          Actualiser
+        </button>
+      </div>
+
+      {/* ====== ERREUR ====== */}
+      {error && (
+        <div className="p-4 bg-red-50 border border-red-200 rounded-lg flex items-center justify-between">
+          <div className="flex items-center text-red-700 text-sm">
+            <ExclamationTriangleIcon className="h-5 w-5 mr-2" />
+            {error}
+          </div>
+          <button onClick={loadData} className="text-sm text-red-700 underline">
+            Réessayer
           </button>
         </div>
-      </div>
-
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-          <div className="flex items-center">
-            <div className="bg-blue-500 p-3 rounded-lg">
-              <ChartBarIcon className="h-6 w-6 text-white" />
-            </div>
-            <div className="ml-4">
-              <p className="text-sm font-medium text-gray-600">Total rapports</p>
-              <p className="text-2xl font-bold text-gray-900">{stats.totalReports}</p>
-            </div>
-          </div>
-        </div>
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-          <div className="flex items-center">
-            <div className="bg-green-500 p-3 rounded-lg">
-              <CalendarIcon className="h-6 w-6 text-white" />
-            </div>
-            <div className="ml-4">
-              <p className="text-sm font-medium text-gray-600">Mensuels</p>
-              <p className="text-2xl font-bold text-gray-900">{stats.monthlyReports}</p>
-            </div>
-          </div>
-        </div>
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-          <div className="flex items-center">
-            <div className="bg-purple-500 p-3 rounded-lg">
-              <CalendarIcon className="h-6 w-6 text-white" />
-            </div>
-            <div className="ml-4">
-              <p className="text-sm font-medium text-gray-600">Hebdomadaires</p>
-              <p className="text-2xl font-bold text-gray-900">{stats.weeklyReports}</p>
-            </div>
-          </div>
-        </div>
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-          <div className="flex items-center">
-            <div className="bg-orange-500 p-3 rounded-lg">
-              <CalendarIcon className="h-6 w-6 text-white" />
-            </div>
-            <div className="ml-4">
-              <p className="text-sm font-medium text-gray-600">Quotidiens</p>
-              <p className="text-2xl font-bold text-gray-900">{stats.dailyReports}</p>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Quick Stats */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">Aperçu rapide</h2>
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-          <div className="text-center">
-            <div className="text-2xl font-bold text-green-600">+15.2%</div>
-            <p className="text-sm text-gray-600">Croissance revenus</p>
-          </div>
-          <div className="text-center">
-            <div className="text-2xl font-bold text-blue-600">142</div>
-            <p className="text-sm text-gray-600">Abonnements actifs</p>
-          </div>
-          <div className="text-center">
-            <div className="text-2xl font-bold text-purple-600">99.8%</div>
-            <p className="text-sm text-gray-600">Uptime système</p>
-          </div>
-          <div className="text-center">
-            <div className="text-2xl font-bold text-orange-600">245ms</div>
-            <p className="text-sm text-gray-600">Temps de réponse</p>
-          </div>
-        </div>
-      </div>
-
-      {/* Reports Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {filteredReports.map((report) => {
-          const ReportIcon = report.icon;
-          return (
-            <div key={report.id} className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
-              <div className="flex items-start justify-between mb-4">
-                <div className={`p-3 rounded-lg bg-${report.color}-100`}>
-                  <ReportIcon className={`h-6 w-6 text-${report.color}-600`} />
-                </div>
-                <div className="flex space-x-1">
-                  {getCategoryBadge(report.category)}
-                </div>
-              </div>
-              
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">{report.name}</h3>
-              <p className="text-sm text-gray-600 mb-4">{report.description}</p>
-              
-              <div className="flex items-center justify-between mb-4">
-                {getFrequencyBadge(report.frequency)}
-                <span className="text-xs text-gray-500">Généré le {report.lastGenerated}</span>
-              </div>
-              
-              {/* Key Metrics */}
-              <div className="space-y-2 mb-4">
-                {report.category === 'financial' && (
-                  <>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-gray-600">Revenu total</span>
-                      <span className="font-medium text-gray-900">{(report.metrics.totalRevenue / 1000000).toFixed(1)}M FCFA</span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-gray-600">Croissance</span>
-                      <span className="font-medium text-green-600">+{report.metrics.growth}%</span>
-                    </div>
-                  </>
-                )}
-                {report.category === 'operational' && (
-                  <>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-gray-600">Hôpitaux actifs</span>
-                      <span className="font-medium text-gray-900">{report.metrics.activeHospitals}</span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-gray-600">Patients moyens</span>
-                      <span className="font-medium text-gray-900">{report.metrics.averagePatients}</span>
-                    </div>
-                  </>
-                )}
-                {report.category === 'user' && (
-                  <>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-gray-600">Utilisateurs actifs</span>
-                      <span className="font-medium text-gray-900">{report.metrics.activeUsers.toLocaleString()}</span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-gray-600">Nouveaux</span>
-                      <span className="font-medium text-blue-600">+{report.metrics.newUsers}</span>
-                    </div>
-                  </>
-                )}
-              </div>
-              
-              {/* Available Formats */}
-              <div className="flex items-center space-x-2 mb-4">
-                <span className="text-xs text-gray-500">Formats:</span>
-                <div className="flex space-x-1">
-                  {report.format.map((format) => (
-                    <span key={format} className="px-2 py-1 bg-gray-100 text-gray-700 text-xs rounded">
-                      {format.toUpperCase()}
-                    </span>
-                  ))}
-                </div>
-              </div>
-              
-              {/* Actions */}
-              <div className="flex space-x-2">
-                <button
-                  onClick={() => handlePreviewReport(report)}
-                  className="flex-1 flex items-center justify-center px-3 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
-                >
-                  <EyeIcon className="h-4 w-4 mr-2" />
-                  Aperçu
-                </button>
-                <button
-                  onClick={() => handleGenerateReport(report.id)}
-                  className="flex-1 flex items-center justify-center px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-                >
-                  <DocumentArrowDownIcon className="h-4 w-4 mr-2" />
-                  Générer
-                </button>
-              </div>
-            </div>
-          );
-        })}
-      </div>
-
-      {/* Preview Modal */}
-      {showPreviewModal && selectedReport && (
-        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-          <div className="relative top-20 mx-auto p-5 border w-11/12 md:w-4/5 lg:w-3/4 shadow-lg rounded-lg bg-white">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-bold text-gray-900">Aperçu: {selectedReport.name}</h3>
-              <button
-                onClick={() => setShowPreviewModal(false)}
-                className="text-gray-400 hover:text-gray-600"
-              >
-                <XCircleIcon className="h-6 w-6" />
-              </button>
-            </div>
-            
-            <div className="space-y-6">
-              {/* Report Summary */}
-              <div className="bg-gray-50 rounded-lg p-4">
-                <h4 className="font-medium text-gray-900 mb-2">Résumé du rapport</h4>
-                <div className="grid grid-cols-2 gap-4 text-sm">
-                  <div>
-                    <span className="text-gray-600">Catégorie:</span>
-                    <span className="ml-2">{getCategoryBadge(selectedReport.category)}</span>
-                  </div>
-                  <div>
-                    <span className="text-gray-600">Fréquence:</span>
-                    <span className="ml-2">{getFrequencyBadge(selectedReport.frequency)}</span>
-                  </div>
-                  <div>
-                    <span className="text-gray-600">Dernière génération:</span>
-                    <span className="ml-2 text-gray-900">{selectedReport.lastGenerated}</span>
-                  </div>
-                  <div>
-                    <span className="text-gray-600">Formats disponibles:</span>
-                    <span className="ml-2 text-gray-900">{selectedReport.format.join(', ')}</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Sample Data Visualization */}
-              <div>
-                <h4 className="font-medium text-gray-900 mb-4">Aperçu des données</h4>
-                
-                {selectedReport.category === 'financial' && (
-                  <div className="space-y-4">
-                    <div className="bg-white border border-gray-200 rounded-lg p-4">
-                      <h5 className="font-medium text-gray-900 mb-3">Évolution des revenus</h5>
-                      <div className="space-y-2">
-                        {reportData.revenue.map((item, index) => (
-                          <div key={index} className="flex justify-between items-center">
-                            <span className="text-sm text-gray-600">{item.month}</span>
-                            <div className="flex items-center space-x-4">
-                              <div className="w-32 bg-gray-200 rounded-full h-2">
-                                <div 
-                                  className="bg-green-500 h-2 rounded-full" 
-                                  style={{ width: `${(item.revenue / 15000000) * 100}%` }}
-                                />
-                              </div>
-                              <span className="text-sm font-medium text-gray-900">
-                                {(item.revenue / 1000000).toFixed(1)}M FCFA
-                              </span>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {selectedReport.category === 'operational' && (
-                  <div className="space-y-4">
-                    <div className="bg-white border border-gray-200 rounded-lg p-4">
-                      <h5 className="font-medium text-gray-900 mb-3">Top hôpitaux par performance</h5>
-                      <div className="space-y-2">
-                        {reportData.hospitals.map((hospital, index) => (
-                          <div key={index} className="flex justify-between items-center p-2 bg-gray-50 rounded">
-                            <span className="text-sm font-medium text-gray-900">{hospital.name}</span>
-                            <div className="text-right">
-                              <div className="text-sm text-gray-600">{hospital.patients} patients</div>
-                              <div className="text-sm font-medium text-gray-900">{hospital.consultations.toLocaleString()} consultations</div>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {selectedReport.category === 'user' && (
-                  <div className="space-y-4">
-                    <div className="bg-white border border-gray-200 rounded-lg p-4">
-                      <h5 className="font-medium text-gray-900 mb-3">Distribution des utilisateurs</h5>
-                      <div className="space-y-2">
-                        {reportData.users.map((user, index) => (
-                          <div key={index} className="flex justify-between items-center">
-                            <span className="text-sm text-gray-600">{user.type}</span>
-                            <div className="flex items-center space-x-4">
-                              <div className="w-32 bg-gray-200 rounded-full h-2">
-                                <div 
-                                  className="bg-blue-500 h-2 rounded-full" 
-                                  style={{ width: `${(user.count / 45678) * 100}%` }}
-                                />
-                              </div>
-                              <span className="text-sm font-medium text-gray-900">
-                                {user.count.toLocaleString()} (+{user.growth}%)
-                              </span>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {selectedReport.category === 'technical' && (
-                  <div className="space-y-4">
-                    <div className="bg-white border border-gray-200 rounded-lg p-4">
-                      <h5 className="font-medium text-gray-900 mb-3">Métriques système</h5>
-                      <div className="space-y-2">
-                        {reportData.performance.map((metric, index) => (
-                          <div key={index} className="flex justify-between items-center">
-                            <span className="text-sm text-gray-600">{metric.metric}</span>
-                            <div className="flex items-center space-x-4">
-                              <div className="w-32 bg-gray-200 rounded-full h-2">
-                                <div 
-                                  className={`h-2 rounded-full ${
-                                    metric.value >= metric.target ? 'bg-green-500' : 'bg-yellow-500'
-                                  }`}
-                                  style={{ width: `${Math.min((metric.value / metric.target) * 100, 100)}%` }}
-                                />
-                              </div>
-                              <span className="text-sm font-medium text-gray-900">{metric.value}</span>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* Actions */}
-              <div className="flex justify-end space-x-3 border-t pt-4">
-                <button className="flex items-center px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50">
-                  <PrinterIcon className="h-4 w-4 mr-2" />
-                  Imprimer
-                </button>
-                <button className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
-                  <DocumentArrowDownIcon className="h-4 w-4 mr-2" />
-                  Télécharger
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
       )}
+
+      {/* ====== STATS PRINCIPALES ====== */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        {loading ? (
+          [1, 2, 3, 4].map(i => <SkeletonCard key={i} />)
+        ) : (
+          <>
+            <StatCard
+              title="Hôpitaux actifs"
+              value={`${stats?.active_hospitals ?? 0} / ${stats?.total_hospitals ?? 0}`}
+              subtitle={`${tauxActivation}% taux d'activation`}
+              icon={BuildingOfficeIcon}
+              colorClass="bg-blue-500"
+            />
+            <StatCard
+              title="Total utilisateurs"
+              value={totalUsers.toLocaleString('fr-FR')}
+              subtitle={`${stats?.total_patients ?? 0} patients · ${stats?.total_doctors ?? 0} médecins`}
+              icon={UserGroupIcon}
+              colorClass="bg-purple-500"
+            />
+            <StatCard
+              title="Total rendez-vous"
+              value={(stats?.total_appointments ?? 0).toLocaleString('fr-FR')}
+              subtitle={`${stats?.today_appointments ?? 0} aujourd'hui`}
+              icon={CalendarIcon}
+              colorClass="bg-green-500"
+            />
+            <StatCard
+              title="RDV en attente"
+              value={stats?.pending_appointments ?? 0}
+              subtitle={`${tauxAttente}% du total`}
+              icon={ClockIcon}
+              colorClass="bg-orange-500"
+            />
+          </>
+        )}
+      </div>
+
+      {/* ====== 2 BLOCS : Indicateurs + Activités ====== */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+        {/* Indicateurs clés */}
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <h2 className="text-lg font-semibold text-gray-900 mb-4">Indicateurs clés</h2>
+
+          {loading ? (
+            <div className="space-y-3 animate-pulse">
+              {[1, 2, 3, 4, 5].map(i => (
+                <div key={i} className="flex justify-between">
+                  <div className="h-4 bg-gray-200 rounded w-40"></div>
+                  <div className="h-4 bg-gray-200 rounded w-20"></div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {[
+                {
+                  label: 'Hôpitaux vérifiés',
+                  value: stats?.active_hospitals ?? 0,
+                  total: stats?.total_hospitals ?? 0,
+                  color: 'bg-blue-500',
+                },
+                {
+                  label: 'Hôpitaux en attente',
+                  value: stats?.pending_hospitals ?? 0,
+                  total: stats?.total_hospitals ?? 0,
+                  color: 'bg-yellow-500',
+                },
+                {
+                  label: 'RDV confirmés',
+                  value: (stats?.total_appointments ?? 0) - (stats?.pending_appointments ?? 0),
+                  total: stats?.total_appointments ?? 0,
+                  color: 'bg-green-500',
+                },
+                {
+                  label: 'RDV en attente',
+                  value: stats?.pending_appointments ?? 0,
+                  total: stats?.total_appointments ?? 0,
+                  color: 'bg-orange-500',
+                },
+                {
+                  label: 'Médecins inscrits',
+                  value: stats?.total_doctors ?? 0,
+                  total: totalUsers,
+                  color: 'bg-purple-500',
+                },
+              ].map((item) => {
+                const pct = item.total > 0
+                  ? Math.round((item.value / item.total) * 100)
+                  : 0;
+                return (
+                  <div key={item.label}>
+                    <div className="flex justify-between text-sm mb-1">
+                      <span className="text-gray-600">{item.label}</span>
+                      <span className="font-medium text-gray-900">
+                        {item.value.toLocaleString('fr-FR')}
+                        <span className="text-gray-400 ml-1">({pct}%)</span>
+                      </span>
+                    </div>
+                    <div className="w-full bg-gray-100 rounded-full h-2">
+                      <div
+                        className={`${item.color} h-2 rounded-full transition-all duration-500`}
+                        style={{ width: `${pct}%` }}
+                      />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        {/* Activités récentes */}
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <h2 className="text-lg font-semibold text-gray-900 mb-4">Activités récentes</h2>
+
+          {loading ? (
+            <div className="space-y-4 animate-pulse">
+              {[1, 2, 3, 4].map(i => (
+                <div key={i} className="flex items-start gap-3">
+                  <div className="h-8 w-8 bg-gray-200 rounded-lg flex-shrink-0"></div>
+                  <div className="flex-1">
+                    <div className="h-3 bg-gray-200 rounded w-full mb-1"></div>
+                    <div className="h-3 bg-gray-100 rounded w-16"></div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : activities.length === 0 ? (
+            <div className="text-center py-8">
+              <ClockIcon className="mx-auto h-10 w-10 text-gray-300" />
+              <p className="mt-2 text-sm text-gray-500">Aucune activité récente</p>
+            </div>
+          ) : (
+            <div className="space-y-3 overflow-y-auto max-h-80">
+              {activities.map((activity) => {
+                const statusColors = {
+                  confirmed: 'bg-green-100 text-green-600',
+                  pending:   'bg-yellow-100 text-yellow-600',
+                  cancelled: 'bg-red-100 text-red-600',
+                  completed: 'bg-gray-100 text-gray-600',
+                  verified:  'bg-blue-100 text-blue-600',
+                };
+                const cls = statusColors[activity.status] || 'bg-gray-100 text-gray-600';
+                return (
+                  <div key={activity.id} className="flex items-start gap-3">
+                    <div className={`p-2 rounded-lg flex-shrink-0 ${cls.split(' ')[0]}`}>
+                      {activity.type === 'hospital'
+                        ? <BuildingOfficeIcon className={`h-4 w-4 ${cls.split(' ')[1]}`} />
+                        : <CalendarIcon className={`h-4 w-4 ${cls.split(' ')[1]}`} />
+                      }
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm text-gray-900 leading-snug">{activity.message}</p>
+                      <p className="text-xs text-gray-400 mt-0.5">{activity.time}</p>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* ====== TABLEAU RÉCAPITULATIF ====== */}
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+        <h2 className="text-lg font-semibold text-gray-900 mb-4">Récapitulatif plateforme</h2>
+
+        {loading ? (
+          <div className="animate-pulse space-y-3">
+            {[1, 2, 3, 4].map(i => (
+              <div key={i} className="h-10 bg-gray-100 rounded"></div>
+            ))}
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  {['Métrique', 'Valeur', 'Statut'].map(h => (
+                    <th key={h} className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wide">
+                      {h}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {[
+                  {
+                    label: 'Hôpitaux actifs',
+                    value: `${stats?.active_hospitals ?? 0} / ${stats?.total_hospitals ?? 0}`,
+                    ok: (stats?.pending_hospitals ?? 0) === 0,
+                    okText: 'Tous validés',
+                    koText: `${stats?.pending_hospitals ?? 0} en attente`,
+                  },
+                  {
+                    label: 'Médecins inscrits',
+                    value: (stats?.total_doctors ?? 0).toLocaleString('fr-FR'),
+                    ok: true,
+                    okText: 'Sur la plateforme',
+                    koText: '',
+                  },
+                  {
+                    label: 'Patients inscrits',
+                    value: (stats?.total_patients ?? 0).toLocaleString('fr-FR'),
+                    ok: true,
+                    okText: 'Comptes actifs',
+                    koText: '',
+                  },
+                  {
+                    label: 'Rendez-vous aujourd\'hui',
+                    value: stats?.today_appointments ?? 0,
+                    ok: (stats?.pending_appointments ?? 0) < 10,
+                    okText: 'Flux normal',
+                    koText: `${stats?.pending_appointments ?? 0} en attente`,
+                  },
+                  {
+                    label: 'Total rendez-vous',
+                    value: (stats?.total_appointments ?? 0).toLocaleString('fr-FR'),
+                    ok: true,
+                    okText: 'Depuis le début',
+                    koText: '',
+                  },
+                ].map((row) => (
+                  <tr key={row.label} className="hover:bg-gray-50">
+                    <td className="px-6 py-3 text-sm font-medium text-gray-900">{row.label}</td>
+                    <td className="px-6 py-3 text-sm text-gray-700">{row.value}</td>
+                    <td className="px-6 py-3">
+                      <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                        row.ok ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
+                      }`}>
+                        {row.ok
+                          ? <><CheckCircleIcon className="h-3 w-3" />{row.okText}</>
+                          : <><ClockIcon className="h-3 w-3" />{row.koText}</>
+                        }
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
     </div>
   );
 };

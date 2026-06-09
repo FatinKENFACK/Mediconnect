@@ -1,7 +1,7 @@
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
 from django.contrib.auth.password_validation import validate_password
-from .models import Hospital
+from .models import Hospital, Service
 
 
 User = get_user_model()
@@ -28,24 +28,17 @@ class PatientRegisterSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError({
                 'confirm_password': 'Les mots de passe ne correspondent pas.'
             })
-        # Vérifie que le numéro d'enregistrement n'existe pas déjà
-        from .models import Hospital
-        if Hospital.objects.filter(registration_number=attrs['registration_number']).exists():
-            raise serializers.ValidationError({
-                'registration_number': 'Ce numéro d\'enregistrement est déjà utilisé.'
-            })
         return attrs
 
     def create(self, validated_data):
         validated_data.pop('confirm_password')
+        password = validated_data.pop('password')
         user = User.objects.create_user(
-            email=validated_data['email'],
-            password=validated_data['password'],
+            password=password,
             role='patient',
-            **{k: v for k, v in validated_data.items() if k not in ['password']}
+            **validated_data
         )
         return user
-
 
 class UserLoginSerializer(serializers.Serializer):
     email = serializers.EmailField(required=True)
@@ -253,3 +246,13 @@ class DoctorRegisterSerializer(serializers.Serializer):
         )
 
         return user
+
+class ServiceSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Service
+        fields = [
+            'id', 'name', 'description', 'category',
+            'consultation_fee', 'duration', 'is_active',
+            'created_at', 'updated_at'
+        ]
+        read_only_fields = ['id', 'created_at', 'updated_at']
