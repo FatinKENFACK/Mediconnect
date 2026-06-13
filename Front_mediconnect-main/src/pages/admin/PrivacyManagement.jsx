@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import api from '../../services/api';
 import {
   LockClosedIcon,
   ShieldCheckIcon,
@@ -8,10 +9,6 @@ import {
   ExclamationTriangleIcon,
   CheckCircleIcon,
   ClockIcon,
-  UserGroupIcon,
-  BuildingOfficeIcon,
-  KeyIcon,
-  ServerIcon,
   Cog6ToothIcon,
   XCircleIcon,
   DocumentArrowDownIcon
@@ -30,180 +27,70 @@ const PrivacyManagement = () => {
     auditFrequency: 'monthly'
   });
 
-  const [accessLogs, setAccessLogs] = useState([]);
-  const [dataRequests, setDataRequests] = useState([]);
-  const [complianceReports, setComplianceReports] = useState([]);
+  const [accessLogs, setAccessLogs]       = useState([]);
+  const [dataRequests, setDataRequests]   = useState([]);
   const [showSettingsModal, setShowSettingsModal] = useState(false);
 
+  // ============================================================
+  // CHARGEMENT
+  // ============================================================
   useEffect(() => {
-    // Simuler le chargement des logs d'accès
-    setAccessLogs([
-      {
-        id: 1,
-        user: 'Dr. Marie Sarr',
-        userType: 'doctor',
-        action: 'consultation',
-        resource: 'patient_data',
-        patientId: 'PAT-001',
-        timestamp: '2024-03-25T14:30:00',
-        ip: '192.168.1.100',
-        location: 'Dakar, Sénégal',
-        success: true,
-        purpose: 'Consultation médicale'
-      },
-      {
-        id: 2,
-        user: 'Admin',
-        userType: 'admin',
-        action: 'export',
-        resource: 'reports',
-        timestamp: '2024-03-25T13:15:00',
-        ip: '192.168.1.1',
-        location: 'Dakar, Sénégal',
-        success: true,
-        purpose: 'Génération de rapport mensuel'
-      },
-      {
-        id: 3,
-        user: 'Dr. Aliou Ba',
-        userType: 'doctor',
-        action: 'modification',
-        resource: 'patient_data',
-        patientId: 'PAT-002',
-        timestamp: '2024-03-25T11:45:00',
-        ip: '192.168.1.102',
-        location: 'Thiès, Sénégal',
-        success: true,
-        purpose: 'Mise à jour des informations patient'
-      },
-      {
-        id: 4,
-        user: 'Unknown',
-        userType: 'unknown',
-        action: 'access_denied',
-        resource: 'patient_data',
-        patientId: 'PAT-003',
-        timestamp: '2024-03-25T10:30:00',
-        ip: '192.168.1.200',
-        location: 'Unknown',
-        success: false,
-        purpose: 'Tentative d\'accès non autorisé'
-      },
-      {
-        id: 5,
-        user: 'Clinique Saint-Jean',
-        userType: 'hospital',
-        action: 'bulk_export',
-        resource: 'patient_records',
-        timestamp: '2024-03-25T09:00:00',
-        ip: '192.168.2.50',
-        location: 'Dakar, Sénégal',
-        success: true,
-        purpose: 'Export pour analyse statistique'
-      }
-    ]);
+    const loadAll = async () => {
+      try {
+        // Stats + paramètres
+        const statsData = await api.getPrivacyStats();
+        setPrivacySettings({
+          dataEncryption: statsData.settings.data_encryption,
+          anonymization:  statsData.settings.anonymization,
+          accessLogs:     statsData.settings.access_logs,
+          twoFactorAuth:  statsData.settings.two_factor_auth,
+          sessionTimeout: statsData.settings.session_timeout,
+          dataRetention:  statsData.settings.data_retention,
+          gdprCompliant:  statsData.settings.gdpr_compliant,
+          hipaaCompliant: statsData.settings.hipaa_compliant,
+          auditFrequency: statsData.settings.audit_frequency,
+        });
 
-    // Simuler les demandes de données
-    setDataRequests([
-      {
-        id: 1,
-        type: 'access_request',
-        requester: 'Patient - Amadou Diallo',
-        email: 'amadou.diallo@email.com',
-        status: 'approved',
-        requestDate: '2024-03-20',
-        responseDate: '2024-03-22',
-        dataRequested: ['dossiers médicaux', 'historique des consultations'],
-        purpose: 'Transfert vers nouveau médecin',
-        expiryDate: '2024-04-20'
-      },
-      {
-        id: 2,
-        type: 'deletion_request',
-        requester: 'Patient - Fatou Ndiaye',
-        email: 'fatou.ndiaye@email.com',
-        status: 'pending',
-        requestDate: '2024-03-24',
-        responseDate: null,
-        dataRequested: ['compte utilisateur', 'données personnelles'],
-        purpose: 'Exercice du droit à l\'oubli',
-        expiryDate: null
-      },
-      {
-        id: 3,
-        type: 'correction_request',
-        requester: 'Patient - Moussa Fall',
-        email: 'moussa.fall@email.com',
-        status: 'completed',
-        requestDate: '2024-03-18',
-        responseDate: '2024-03-19',
-        dataRequested: ['informations de contact'],
-        purpose: 'Mise à jour des coordonnées',
-        expiryDate: null
-      }
-    ]);
+        // Logs d'accès
+        const logsData = await api.getAccessLogs();
+        setAccessLogs(logsData.logs || []);
 
-    // Simuler les rapports de conformité
-    setComplianceReports([
-      {
-        id: 1,
-        type: 'GDPR',
-        title: 'Rapport de conformité RGPD - Mars 2024',
-        status: 'compliant',
-        generatedDate: '2024-03-01',
-        nextReview: '2024-04-01',
-        score: 98,
-        issues: [],
-        recommendations: ['Maintenir les pratiques actuelles']
-      },
-      {
-        id: 2,
-        type: 'HIPAA',
-        title: 'Audit de sécurité HIPAA - Q1 2024',
-        status: 'compliant',
-        generatedDate: '2024-03-15',
-        nextReview: '2024-06-15',
-        score: 95,
-        issues: ['Formation du personnel requise'],
-        recommendations: ['Organiser une session de formation sur la confidentialité']
-      },
-      {
-        id: 3,
-        type: 'Internal',
-        title: 'Audit interne de sécurité - Mars 2024',
-        status: 'minor_issues',
-        generatedDate: '2024-03-20',
-        nextReview: '2024-04-20',
-        score: 88,
-        issues: ['Logs d\'accès incomplets', 'Mise à jour des politiques requise'],
-        recommendations: ['Implémenter un logging complet', 'Réviser les politiques de confidentialité']
+        // Demandes de données
+        const requestsData = await api.getDataRequests();
+        setDataRequests(Array.isArray(requestsData) ? requestsData : []);
+
+      } catch (err) {
+        console.error('Erreur chargement privacy:', err);
       }
-    ]);
+    };
+    loadAll();
   }, []);
 
+  // ============================================================
+  // HELPERS
+  // ============================================================
   const getStatusBadge = (status) => {
     const styles = {
-      compliant: 'bg-green-100 text-green-800',
-      minor_issues: 'bg-yellow-100 text-yellow-800',
+      compliant:     'bg-green-100 text-green-800',
+      minor_issues:  'bg-yellow-100 text-yellow-800',
       non_compliant: 'bg-red-100 text-red-800',
-      approved: 'bg-green-100 text-green-800',
-      pending: 'bg-yellow-100 text-yellow-800',
-      completed: 'bg-blue-100 text-blue-800',
-      rejected: 'bg-red-100 text-red-800'
+      approved:      'bg-green-100 text-green-800',
+      pending:       'bg-yellow-100 text-yellow-800',
+      completed:     'bg-blue-100 text-blue-800',
+      rejected:      'bg-red-100 text-red-800'
     };
     const labels = {
-      compliant: 'Conforme',
-      minor_issues: 'Problèmes mineurs',
+      compliant:     'Conforme',
+      minor_issues:  'Problèmes mineurs',
       non_compliant: 'Non conforme',
-      approved: 'Approuvé',
-      pending: 'En attente',
-      completed: 'Terminé',
-      rejected: 'Rejeté'
+      approved:      'Approuvé',
+      pending:       'En attente',
+      completed:     'Terminé',
+      rejected:      'Rejeté'
     };
-    
     return (
-      <span className={`px-2 py-1 text-xs font-medium rounded-full ${styles[status]}`}>
-        {labels[status]}
+      <span className={`px-2 py-1 text-xs font-medium rounded-full ${styles[status] || 'bg-gray-100 text-gray-800'}`}>
+        {labels[status] || status}
       </span>
     );
   };
@@ -214,23 +101,45 @@ const PrivacyManagement = () => {
     return 'text-red-600';
   };
 
-  const handleSettingsUpdate = () => {
-    // Logique de mise à jour des paramètres
-    console.log('Updating privacy settings:', privacySettings);
-    setShowSettingsModal(false);
+  // ============================================================
+  // SAUVEGARDER LES PARAMÈTRES
+  // ============================================================
+  const handleSettingsUpdate = async () => {
+    try {
+      await api.updatePrivacySettings({
+        data_encryption: privacySettings.dataEncryption,
+        anonymization:   privacySettings.anonymization,
+        access_logs:     privacySettings.accessLogs,
+        two_factor_auth: privacySettings.twoFactorAuth,
+        session_timeout: privacySettings.sessionTimeout,
+        data_retention:  privacySettings.dataRetention,
+        gdpr_compliant:  privacySettings.gdprCompliant,
+        hipaa_compliant: privacySettings.hipaaCompliant,
+        audit_frequency: privacySettings.auditFrequency,
+      });
+      setShowSettingsModal(false);
+    } catch (err) {
+      console.error('Erreur sauvegarde paramètres:', err);
+    }
   };
 
+  // ============================================================
+  // STATS CALCULÉES
+  // ============================================================
   const stats = {
-    totalAccessLogs: accessLogs.length,
+    totalAccessLogs:  accessLogs.length,
     successfulAccess: accessLogs.filter(log => log.success).length,
-    failedAccess: accessLogs.filter(log => !log.success).length,
-    pendingRequests: dataRequests.filter(req => req.status === 'pending').length,
-    complianceScore: Math.round(complianceReports.reduce((sum, report) => sum + report.score, 0) / complianceReports.length)
+    failedAccess:     accessLogs.filter(log => !log.success).length,
+    pendingRequests:  dataRequests.filter(req => req.status === 'pending').length,
   };
 
+  // ============================================================
+  // RENDER
+  // ============================================================
   return (
     <div className="space-y-6">
-      {/* Header */}
+
+      {/* ====== HEADER ====== */}
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Confidentialité des données</h1>
@@ -245,23 +154,7 @@ const PrivacyManagement = () => {
         </button>
       </div>
 
-      {/* Compliance Score */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h2 className="text-lg font-semibold text-gray-900">Score de conformité global</h2>
-            <p className="text-sm text-gray-600 mt-1">Basé sur les audits RGPD, HIPAA et internes</p>
-          </div>
-          <div className="text-center">
-            <div className={`text-4xl font-bold ${getScoreColor(stats.complianceScore)}`}>
-              {stats.complianceScore}%
-            </div>
-            <p className="text-sm text-gray-600">Excellent</p>
-          </div>
-        </div>
-      </div>
-
-      {/* Stats Cards */}
+      {/* ====== STATS CARDS ====== */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
           <div className="flex items-center">
@@ -309,403 +202,319 @@ const PrivacyManagement = () => {
         </div>
       </div>
 
-      {/* Privacy Settings Overview */}
+      {/* ====== PARAMÈTRES ACTIFS ====== */}
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
         <h2 className="text-lg font-semibold text-gray-900 mb-4">Paramètres de confidentialité actifs</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           <div className="flex items-center space-x-3">
-            <LockClosedIcon className="h-5 w-5 text-green-600" />
+            <LockClosedIcon className={`h-5 w-5 ${privacySettings.dataEncryption ? 'text-green-600' : 'text-gray-400'}`} />
             <span className="text-sm text-gray-700">Chiffrement des données</span>
-            <span className="px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full">Actif</span>
+            <span className={`px-2 py-1 text-xs rounded-full ${privacySettings.dataEncryption ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'}`}>
+              {privacySettings.dataEncryption ? 'Actif' : 'Inactif'}
+            </span>
           </div>
           <div className="flex items-center space-x-3">
-            <EyeSlashIcon className="h-5 w-5 text-green-600" />
+            <EyeSlashIcon className={`h-5 w-5 ${privacySettings.anonymization ? 'text-green-600' : 'text-gray-400'}`} />
             <span className="text-sm text-gray-700">Anonymisation</span>
-            <span className="px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full">Actif</span>
+            <span className={`px-2 py-1 text-xs rounded-full ${privacySettings.anonymization ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'}`}>
+              {privacySettings.anonymization ? 'Actif' : 'Inactif'}
+            </span>
           </div>
           <div className="flex items-center space-x-3">
-            <DocumentTextIcon className="h-5 w-5 text-green-600" />
+            <DocumentTextIcon className={`h-5 w-5 ${privacySettings.accessLogs ? 'text-green-600' : 'text-gray-400'}`} />
             <span className="text-sm text-gray-700">Logs d'accès</span>
-            <span className="px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full">Actif</span>
+            <span className={`px-2 py-1 text-xs rounded-full ${privacySettings.accessLogs ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'}`}>
+              {privacySettings.accessLogs ? 'Actif' : 'Inactif'}
+            </span>
           </div>
           <div className="flex items-center space-x-3">
-            <ShieldCheckIcon className="h-5 w-5 text-green-600" />
+            <ShieldCheckIcon className={`h-5 w-5 ${privacySettings.gdprCompliant ? 'text-green-600' : 'text-gray-400'}`} />
             <span className="text-sm text-gray-700">Conformité RGPD</span>
-            <span className="px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full">Actif</span>
+            <span className={`px-2 py-1 text-xs rounded-full ${privacySettings.gdprCompliant ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'}`}>
+              {privacySettings.gdprCompliant ? 'Actif' : 'Inactif'}
+            </span>
           </div>
           <div className="flex items-center space-x-3">
-            <ShieldCheckIcon className="h-5 w-5 text-green-600" />
+            <ShieldCheckIcon className={`h-5 w-5 ${privacySettings.hipaaCompliant ? 'text-green-600' : 'text-gray-400'}`} />
             <span className="text-sm text-gray-700">Conformité HIPAA</span>
-            <span className="px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full">Actif</span>
+            <span className={`px-2 py-1 text-xs rounded-full ${privacySettings.hipaaCompliant ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'}`}>
+              {privacySettings.hipaaCompliant ? 'Actif' : 'Inactif'}
+            </span>
           </div>
           <div className="flex items-center space-x-3">
             <ClockIcon className="h-5 w-5 text-yellow-600" />
             <span className="text-sm text-gray-700">Timeout de session</span>
-            <span className="px-2 py-1 bg-yellow-100 text-yellow-800 text-xs rounded-full">{privacySettings.sessionTimeout} min</span>
+            <span className="px-2 py-1 bg-yellow-100 text-yellow-800 text-xs rounded-full">
+              {privacySettings.sessionTimeout} min
+            </span>
           </div>
         </div>
       </div>
 
-      {/* Recent Access Logs */}
+      {/* ====== LOGS D'ACCÈS ====== */}
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
         <div className="px-6 py-4 border-b border-gray-200">
           <h2 className="text-lg font-semibold text-gray-900">Logs d'accès récents</h2>
         </div>
-        <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Utilisateur
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Action
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Ressource
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Timestamp
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Statut
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {accessLogs.slice(0, 5).map((log) => (
-                <tr key={log.id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div>
-                      <div className="text-sm font-medium text-gray-900">{log.user}</div>
-                      <div className="text-sm text-gray-500">{log.userType}</div>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div>
+        {accessLogs.length === 0 ? (
+          <div className="p-12 text-center">
+            <EyeIcon className="mx-auto h-12 w-12 text-gray-300 mb-3" />
+            <p className="text-gray-500 text-sm">Aucun log d'accès enregistré pour le moment.</p>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  {['Utilisateur', 'Action', 'Ressource', 'Timestamp', 'Statut'].map(h => (
+                    <th key={h} className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      {h}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {accessLogs.slice(0, 10).map((log) => (
+                  <tr key={log.id} className="hover:bg-gray-50">
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm font-medium text-gray-900">{log.user_name}</div>
+                      <div className="text-sm text-gray-500">{log.user_type}</div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm text-gray-900 capitalize">{log.action}</div>
                       <div className="text-xs text-gray-500">{log.purpose}</div>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-900 capitalize">{log.resource}</div>
-                    {log.patientId && (
-                      <div className="text-xs text-gray-500">{log.patientId}</div>
-                    )}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-900">{new Date(log.timestamp).toLocaleString()}</div>
-                    <div className="text-xs text-gray-500">{log.location}</div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`px-2 py-1 text-xs font-medium rounded-full ${
-                      log.success ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                    }`}>
-                      {log.success ? 'Succès' : 'Refusé'}
-                    </span>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm text-gray-900 capitalize">{log.resource}</div>
+                      {log.patient_id && (
+                        <div className="text-xs text-gray-500">{log.patient_id}</div>
+                      )}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm text-gray-900">
+                        {new Date(log.created_at).toLocaleString('fr-FR')}
+                      </div>
+                      {log.location && (
+                        <div className="text-xs text-gray-500">{log.location}</div>
+                      )}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className={`px-2 py-1 text-xs font-medium rounded-full ${
+                        log.success ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                      }`}>
+                        {log.success ? 'Succès' : 'Refusé'}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
 
-      {/* Data Requests */}
+      {/* ====== DEMANDES DE DONNÉES ====== */}
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
         <div className="px-6 py-4 border-b border-gray-200">
           <h2 className="text-lg font-semibold text-gray-900">Demandes de données</h2>
         </div>
-        <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Demandeur
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Type
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Date
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Statut
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Actions
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {dataRequests.map((request) => (
-                <tr key={request.id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div>
-                      <div className="text-sm font-medium text-gray-900">{request.requester}</div>
-                      <div className="text-sm text-gray-500">{request.email}</div>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-900 capitalize">{request.type.replace('_', ' ')}</div>
-                    <div className="text-xs text-gray-500">{request.purpose}</div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-900">{request.requestDate}</div>
-                    {request.responseDate && (
-                      <div className="text-xs text-gray-500">Réponse: {request.responseDate}</div>
-                    )}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    {getStatusBadge(request.status)}
-                    {request.expiryDate && (
-                      <div className="text-xs text-gray-500 mt-1">Expire: {request.expiryDate}</div>
-                    )}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                    <div className="flex items-center space-x-2">
-                      <button className="text-blue-600 hover:text-blue-800">
-                        <EyeIcon className="h-5 w-5" />
-                      </button>
-                      {request.status === 'pending' && (
-                        <>
-                          <button className="text-green-600 hover:text-green-800">
-                            <CheckCircleIcon className="h-5 w-5" />
-                          </button>
-                          <button className="text-red-600 hover:text-red-800">
-                            <XCircleIcon className="h-5 w-5" />
-                          </button>
-                        </>
-                      )}
-                    </div>
-                  </td>
+        {dataRequests.length === 0 ? (
+          <div className="p-12 text-center">
+            <DocumentTextIcon className="mx-auto h-12 w-12 text-gray-300 mb-3" />
+            <p className="text-gray-500 text-sm">Aucune demande de données pour le moment.</p>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  {['Demandeur', 'Type', 'Date', 'Statut', 'Actions'].map(h => (
+                    <th key={h} className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      {h}
+                    </th>
+                  ))}
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {dataRequests.map((request) => (
+                  <tr key={request.id} className="hover:bg-gray-50">
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm font-medium text-gray-900">{request.requester_name}</div>
+                      <div className="text-sm text-gray-500">{request.requester_email}</div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm text-gray-900 capitalize">
+                        {request.request_type?.replace(/_/g, ' ')}
+                      </div>
+                      <div className="text-xs text-gray-500">{request.purpose}</div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm text-gray-900">
+                        {request.created_at?.split('T')[0]}
+                      </div>
+                      {request.response_date && (
+                        <div className="text-xs text-gray-500">Réponse : {request.response_date}</div>
+                      )}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      {getStatusBadge(request.status)}
+                      {request.expiry_date && (
+                        <div className="text-xs text-gray-500 mt-1">Expire : {request.expiry_date}</div>
+                      )}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                      <div className="flex items-center space-x-2">
+                        <button className="text-blue-600 hover:text-blue-800" title="Voir">
+                          <EyeIcon className="h-5 w-5" />
+                        </button>
+                        {request.status === 'pending' && (
+                          <>
+                            <button
+                              onClick={async () => {
+                                await api.updateDataRequest(request.id, 'approve');
+                                setDataRequests(prev =>
+                                  prev.map(r => r.id === request.id ? { ...r, status: 'approved' } : r)
+                                );
+                              }}
+                              className="text-green-600 hover:text-green-800"
+                              title="Approuver"
+                            >
+                              <CheckCircleIcon className="h-5 w-5" />
+                            </button>
+                            <button
+                              onClick={async () => {
+                                await api.updateDataRequest(request.id, 'reject');
+                                setDataRequests(prev =>
+                                  prev.map(r => r.id === request.id ? { ...r, status: 'rejected' } : r)
+                                );
+                              }}
+                              className="text-red-600 hover:text-red-800"
+                              title="Rejeter"
+                            >
+                              <XCircleIcon className="h-5 w-5" />
+                            </button>
+                          </>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
 
-      {/* Compliance Reports */}
+      {/* ====== RAPPORTS DE CONFORMITÉ (à venir) ====== */}
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
         <div className="px-6 py-4 border-b border-gray-200">
           <h2 className="text-lg font-semibold text-gray-900">Rapports de conformité</h2>
         </div>
-        <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Rapport
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Type
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Score
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Date
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Statut
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Actions
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {complianceReports.map((report) => (
-                <tr key={report.id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm font-medium text-gray-900">{report.title}</div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full">
-                      {report.type}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className={`text-lg font-bold ${getScoreColor(report.score)}`}>
-                      {report.score}%
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-900">{report.generatedDate}</div>
-                    <div className="text-xs text-gray-500">Prochain: {report.nextReview}</div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    {getStatusBadge(report.status)}
-                    {report.issues.length > 0 && (
-                      <div className="text-xs text-yellow-600 mt-1">
-                        {report.issues.length} issue(s)
-                      </div>
-                    )}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                    <div className="flex items-center space-x-2">
-                      <button className="text-blue-600 hover:text-blue-800">
-                        <EyeIcon className="h-5 w-5" />
-                      </button>
-                      <button className="text-green-600 hover:text-green-800">
-                        <DocumentArrowDownIcon className="h-5 w-5" />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        <div className="p-12 text-center">
+          <ShieldCheckIcon className="mx-auto h-12 w-12 text-gray-300 mb-3" />
+          <p className="text-gray-500 text-sm">Les rapports de conformité seront disponibles prochainement.</p>
+          <p className="text-gray-400 text-xs mt-1">RGPD · HIPAA · Audit interne</p>
         </div>
       </div>
 
-      {/* Settings Modal */}
+      {/* ====== MODAL PARAMÈTRES ====== */}
       {showSettingsModal && (
         <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
           <div className="relative top-20 mx-auto p-5 border w-11/12 md:w-2/3 shadow-lg rounded-lg bg-white">
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-lg font-bold text-gray-900">Paramètres de confidentialité</h3>
-              <button
-                onClick={() => setShowSettingsModal(false)}
-                className="text-gray-400 hover:text-gray-600"
-              >
+              <button onClick={() => setShowSettingsModal(false)} className="text-gray-400 hover:text-gray-600">
                 <XCircleIcon className="h-6 w-6" />
               </button>
             </div>
-            
+
             <div className="space-y-6">
-              {/* Security Settings */}
+
+              {/* Sécurité */}
               <div>
                 <h4 className="text-md font-medium text-gray-900 mb-4">Paramètres de sécurité</h4>
                 <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div>
+                  {[
+                    { key: 'dataEncryption', label: 'Chiffrement des données',        desc: 'Chiffrer toutes les données sensibles' },
+                    { key: 'anonymization',  label: 'Anonymisation des données',      desc: 'Anonymiser les données pour les analyses' },
+                    { key: 'accessLogs',     label: "Logs d'accès complets",          desc: "Enregistrer tous les accès aux données" },
+                    { key: 'twoFactorAuth',  label: 'Authentification à deux facteurs',desc: 'Exiger 2FA pour les accès administrateurs' },
+                  ].map(item => (
+                    <div key={item.key}>
                       <label className="flex items-center">
                         <input
                           type="checkbox"
-                          checked={privacySettings.dataEncryption}
-                          onChange={(e) => setPrivacySettings(prev => ({ ...prev, dataEncryption: e.target.checked }))}
+                          checked={privacySettings[item.key]}
+                          onChange={(e) => setPrivacySettings(prev => ({ ...prev, [item.key]: e.target.checked }))}
                           className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
                         />
-                        <span className="ml-2 text-sm text-gray-700">Chiffrement des données</span>
+                        <span className="ml-2 text-sm text-gray-700">{item.label}</span>
                       </label>
-                      <p className="text-xs text-gray-500 mt-1 ml-6">Chiffrer toutes les données sensibles</p>
+                      <p className="text-xs text-gray-500 mt-1 ml-6">{item.desc}</p>
                     </div>
-                  </div>
-                  
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <label className="flex items-center">
-                        <input
-                          type="checkbox"
-                          checked={privacySettings.anonymization}
-                          onChange={(e) => setPrivacySettings(prev => ({ ...prev, anonymization: e.target.checked }))}
-                          className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                        />
-                        <span className="ml-2 text-sm text-gray-700">Anonymisation des données</span>
-                      </label>
-                      <p className="text-xs text-gray-500 mt-1 ml-6">Anonymiser les données pour les analyses</p>
-                    </div>
-                  </div>
-                  
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <label className="flex items-center">
-                        <input
-                          type="checkbox"
-                          checked={privacySettings.accessLogs}
-                          onChange={(e) => setPrivacySettings(prev => ({ ...prev, accessLogs: e.target.checked }))}
-                          className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                        />
-                        <span className="ml-2 text-sm text-gray-700">Logs d'accès complets</span>
-                      </label>
-                      <p className="text-xs text-gray-500 mt-1 ml-6">Enregistrer tous les accès aux données</p>
-                    </div>
-                  </div>
-                  
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <label className="flex items-center">
-                        <input
-                          type="checkbox"
-                          checked={privacySettings.twoFactorAuth}
-                          onChange={(e) => setPrivacySettings(prev => ({ ...prev, twoFactorAuth: e.target.checked }))}
-                          className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                        />
-                        <span className="ml-2 text-sm text-gray-700">Authentification à deux facteurs</span>
-                      </label>
-                      <p className="text-xs text-gray-500 mt-1 ml-6">Exiger 2FA pour les accès administrateurs</p>
-                    </div>
-                  </div>
+                  ))}
                 </div>
               </div>
 
-              {/* Retention Settings */}
+              {/* Rétention */}
               <div>
                 <h4 className="text-md font-medium text-gray-900 mb-4">Rétention des données</h4>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Timeout de session (minutes)</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Timeout de session (minutes)
+                    </label>
                     <input
                       type="number"
                       value={privacySettings.sessionTimeout}
                       onChange={(e) => setPrivacySettings(prev => ({ ...prev, sessionTimeout: parseInt(e.target.value) }))}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Rétention des données (jours)</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Rétention des données (jours)
+                    </label>
                     <input
                       type="number"
                       value={privacySettings.dataRetention}
                       onChange={(e) => setPrivacySettings(prev => ({ ...prev, dataRetention: parseInt(e.target.value) }))}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                     />
                   </div>
                 </div>
               </div>
 
-              {/* Compliance Settings */}
+              {/* Conformité */}
               <div>
                 <h4 className="text-md font-medium text-gray-900 mb-4">Conformité</h4>
                 <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div>
+                  {[
+                    { key: 'gdprCompliant',  label: 'Conformité RGPD',  desc: 'Respecter les réglementations RGPD' },
+                    { key: 'hipaaCompliant', label: 'Conformité HIPAA', desc: 'Respecter les normes HIPAA' },
+                  ].map(item => (
+                    <div key={item.key}>
                       <label className="flex items-center">
                         <input
                           type="checkbox"
-                          checked={privacySettings.gdprCompliant}
-                          onChange={(e) => setPrivacySettings(prev => ({ ...prev, gdprCompliant: e.target.checked }))}
+                          checked={privacySettings[item.key]}
+                          onChange={(e) => setPrivacySettings(prev => ({ ...prev, [item.key]: e.target.checked }))}
                           className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
                         />
-                        <span className="ml-2 text-sm text-gray-700">Conformité RGPD</span>
+                        <span className="ml-2 text-sm text-gray-700">{item.label}</span>
                       </label>
-                      <p className="text-xs text-gray-500 mt-1 ml-6">Respecter les réglementations RGPD</p>
+                      <p className="text-xs text-gray-500 mt-1 ml-6">{item.desc}</p>
                     </div>
-                  </div>
-                  
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <label className="flex items-center">
-                        <input
-                          type="checkbox"
-                          checked={privacySettings.hipaaCompliant}
-                          onChange={(e) => setPrivacySettings(prev => ({ ...prev, hipaaCompliant: e.target.checked }))}
-                          className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                        />
-                        <span className="ml-2 text-sm text-gray-700">Conformité HIPAA</span>
-                      </label>
-                      <p className="text-xs text-gray-500 mt-1 ml-6">Respecter les normes HIPAA</p>
-                    </div>
-                  </div>
-                  
+                  ))}
+
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Fréquence des audits</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Fréquence des audits
+                    </label>
                     <select
                       value={privacySettings.auditFrequency}
                       onChange={(e) => setPrivacySettings(prev => ({ ...prev, auditFrequency: e.target.value }))}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                     >
                       <option value="weekly">Hebdomadaire</option>
                       <option value="monthly">Mensuel</option>

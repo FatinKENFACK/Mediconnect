@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { 
+import {
   CalendarIcon, ClockIcon, UserCircleIcon,
   MagnifyingGlassIcon, PlusIcon, TrashIcon,
-  VideoCameraIcon, MapPinIcon
+  VideoCameraIcon, MapPinIcon, StarIcon,
 } from '@heroicons/react/24/outline';
 import api from '../../services/api';
 
@@ -120,21 +120,19 @@ const Appointments = () => {
         <nav className="-mb-px flex space-x-8">
           <button
             onClick={() => setActiveTab('upcoming')}
-            className={`${
-              activeTab === 'upcoming'
+            className={`${activeTab === 'upcoming'
                 ? 'border-teal-500 text-teal-600'
                 : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-            } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm`}
+              } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm`}
           >
             À venir
           </button>
           <button
             onClick={() => setActiveTab('past')}
-            className={`${
-              activeTab === 'past'
+            className={`${activeTab === 'past'
                 ? 'border-teal-500 text-teal-600'
                 : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-            } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm`}
+              } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm`}
           >
             Passés / Annulés
           </button>
@@ -206,15 +204,43 @@ const Appointments = () => {
                         </div>
                       </div>
 
-                      {(rdv.status === 'pending' || rdv.status === 'confirmed') && (
-                        <button
-                          onClick={() => handleCancel(rdv.id)}
-                          className="inline-flex items-center px-3 py-1.5 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-red-600 hover:bg-red-700"
-                        >
-                          <TrashIcon className="-ml-0.5 mr-2 h-4 w-4" />
-                          Annuler
-                        </button>
-                      )}
+                      <div className="flex items-center gap-2">
+                        {(rdv.status === 'pending' || rdv.status === 'confirmed') && (
+                          <button
+                            onClick={() => handleCancel(rdv.id)}
+                            className="inline-flex items-center px-3 py-1.5 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-red-600 hover:bg-red-700"
+                          >
+                            <TrashIcon className="-ml-0.5 mr-2 h-4 w-4" />
+                            Annuler
+                          </button>
+                        )}
+                        {rdv.status === 'completed' && (
+                          <Link
+                            to="/patient/avis"
+                            state={{
+                              consultation: {
+                                id: rdv.id,
+                                appointmentId: rdv.id,
+                                doctor: {
+                                  id: rdv.doctor,
+                                  name: rdv.doctor_full_name || rdv.doctor_name || 'Médecin',
+                                  specialty: rdv.doctor_specialization || rdv.doctor_specialty || '',
+                                  avatar: '/api/placeholder/100/100',
+                                },
+                                date: new Date(rdv.date).toLocaleDateString('fr-FR', {
+                                  day: 'numeric', month: 'long', year: 'numeric'
+                                }),
+                                time: rdv.time ? rdv.time.slice(0, 5) : '',
+                                type: rdv.type === 'video' ? 'En ligne' : 'Présentiel',
+                              }
+                            }}
+                            className="inline-flex items-center px-3 py-1.5 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
+                          >
+                            <StarIcon className="-ml-0.5 mr-2 h-4 w-4" />
+                            Donner un avis
+                          </Link>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </li>

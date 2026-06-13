@@ -5,7 +5,6 @@
 const BASE_URL = 'http://localhost:8000/api';
 
 // ================= TOKEN MANAGEMENT =================
-
 // Sauvegarder token
 const saveTokens = ({ access, refresh }) => {
   localStorage.setItem('access', access);
@@ -326,6 +325,11 @@ const updateDoctorStatus = async (id, action) => {
   });
 };
 
+const getDoctorAvailabilitiesByDoctor = async (doctorId) => {
+  return await request(`/appointments/availability/doctor/${doctorId}/`);
+};
+
+
 // Abonnements
 const getAdminSubscriptions = async () => {
   return await request('/accounts/admin/subscriptions/');
@@ -351,6 +355,22 @@ const updatePaymentStatus = async (id, action, reason = '') => {
 // Récupère le profil du médecin connecté
 const getDoctorProfile = async () => {
   return await request('/accounts/doctor/profile/');
+};
+
+// Voir le détail d'un paiement
+// GET /api/payments/<id>/
+const getAdminPaymentDetail = async (id) => {
+  return await request(`/payments/${id}/`);
+};
+
+
+// Créer un paiement (pour l'abonnement hôpital)
+// POST /api/payments/
+const createPayment = async (data) => {
+  return await request('/payments/', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
 };
 
 // Met à jour le profil du médecin
@@ -382,14 +402,6 @@ const updateAppointmentStatus = async (id, status) => {
 const getDoctors = async () => {
   return await request('/accounts/doctors/');
 };
-
-
-// ============================================================
-// MEDICAL RECORDS
-// Toutes les fonctions pour le dossier médical
-// 'request' est notre fonction centrale qui gère le token JWT
-// ============================================================
-
 // -------- ANTÉCÉDENTS MÉDICAUX --------
 
 // Récupère la liste de tous les antécédents du patient connecté
@@ -505,8 +517,6 @@ const getMedicalDocuments = async () => {
 };
 
 // Upload un nouveau document médical
-// POST /api/medical/documents/
-// Utilise FormData car on envoie un fichier (pas du JSON)
 const uploadMedicalDocument = async (data) => {
   const token = getAccessToken();
 
@@ -703,6 +713,148 @@ const deleteConversation = async (id) => {
   });
 };
 
+
+const createReview = async (data) => {
+  return await request('/reviews/', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+};
+
+// Liste des avis donnés par le patient connecté
+// GET /api/reviews/my/
+const getMyReviews = async () => {
+  return await request('/reviews/my/');
+};
+
+// Supprime son propre avis (seulement si pending)
+// DELETE /api/reviews/my/<id>/
+const deleteMyReview = async (id) => {
+  return await request(`/reviews/my/${id}/`, { method: 'DELETE' });
+};
+
+// ---- Public ----
+
+// Avis publics approuvés d'un médecin
+// GET /api/reviews/doctor/<doctor_id>/
+const getDoctorReviews = async (doctorId) => {
+  return await request(`/reviews/doctor/${doctorId}/`);
+};
+
+// ---- Médecin ----
+
+// Médecin voit ses propres avis reçus
+// GET /api/reviews/doctor/me/
+const getDoctorMyReviews = async () => {
+  return await request('/reviews/doctor/me/');
+};
+
+// ---- Hôpital ----
+
+// Hôpital voit les avis de tous ses médecins
+// GET /api/reviews/hospital/
+const getHospitalReviews = async () => {
+  return await request('/reviews/hospital/');
+};
+
+// ---- Admin ----
+
+// Admin liste tous les avis (avec filtres optionnels)
+// GET /api/reviews/admin/?status=pending&doctor=1&rating=5
+const getAdminReviews = async (filters = {}) => {
+  const query = new URLSearchParams(filters).toString();
+  return await request(`/reviews/admin/${query ? '?' + query : ''}`);
+};
+
+// Admin approuve ou rejette un avis
+// PATCH /api/reviews/admin/<id>/
+// action: 'approve' | 'reject'
+// reason: requis si reject
+const moderateReview = async (id, action, reason = '') => {
+  return await request(`/reviews/admin/${id}/`, {
+    method: 'PATCH',
+    body: JSON.stringify({ action, reason }),
+  });
+};
+
+// Admin supprime un avis
+// DELETE /api/reviews/admin/<id>/
+const deleteReview = async (id) => {
+  return await request(`/reviews/admin/${id}/`, { method: 'DELETE' });
+};
+
+// ================= BACKUP =================
+
+const getBackups = async () => {
+  return await request('/backup/');
+};
+
+const getBackupStats = async () => {
+  return await request('/backup/stats/');
+};
+
+const createBackup = async (data) => {
+  return await request('/backup/create/', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+};
+
+const downloadBackup = async (filename) => {
+  const token = getAccessToken();
+  const response = await fetch(`${BASE_URL}/backup/download/${filename}/`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!response.ok) throw new Error('Erreur lors du téléchargement.');
+  const blob = await response.blob();
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href     = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+};
+
+const deleteBackup = async (filename) => {
+  return await request(`/backup/delete/${filename}/`, { method: 'DELETE' });
+};
+
+// ================= PRIVACY =================
+
+const getPrivacyStats = async () => {
+  return await request('/privacy/stats/');
+};
+
+const getAccessLogs = async () => {
+  return await request('/privacy/logs/');
+};
+
+const getDataRequests = async (filters = {}) => {
+  const query = new URLSearchParams(filters).toString();
+  return await request(`/privacy/requests/${query ? '?' + query : ''}`);
+};
+
+const updateDataRequest = async (id, action, reason = '') => {
+  return await request(`/privacy/requests/${id}/`, {
+    method: 'PATCH',
+    body: JSON.stringify({ action, reason }),
+  });
+};
+
+const deleteDataRequest = async (id) => {
+  return await request(`/privacy/requests/${id}/`, { method: 'DELETE' });
+};
+
+const getPrivacySettings = async () => {
+  return await request('/privacy/settings/');
+};
+
+const updatePrivacySettings = async (data) => {
+  return await request('/privacy/settings/', {
+    method: 'PATCH',
+    body: JSON.stringify(data),
+  });
+};
 // ================= EXPORT =================
 
 const api = {
@@ -783,7 +935,7 @@ const api = {
   getConversations,
   createConversation,
   getConversation,
-  sendMessage, 
+  sendMessage,
   deleteConversation,
 
   getAdminSubscriptions,
@@ -791,7 +943,37 @@ const api = {
   getHospitalPatientRecords,
 
   getAdminPayments,
+  getAdminPaymentDetail,
   updatePaymentStatus,
+  createPayment,
+
+  // voir les avis
+  getDoctorAvailabilitiesByDoctor,
+  createReview,
+  getMyReviews,
+  deleteMyReview,
+  getDoctorReviews,
+  getDoctorMyReviews,
+  getHospitalReviews,
+  getAdminReviews,
+  moderateReview,
+  deleteReview,
+
+  //backup
+  getBackups,
+  getBackupStats,
+  createBackup,
+  downloadBackup,
+  deleteBackup,
+
+  //privacy
+  getPrivacyStats,
+  getAccessLogs,
+  getDataRequests,
+  updateDataRequest,
+  deleteDataRequest,
+  getPrivacySettings,
+  updatePrivacySettings,
 };
 
 export default api;

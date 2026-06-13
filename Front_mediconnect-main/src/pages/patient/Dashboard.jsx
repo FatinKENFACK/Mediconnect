@@ -14,14 +14,14 @@ import api from '../../services/api';
 // ACTIONS RAPIDES (statique — pas besoin de backend)
 // ============================================================
 const quickActions = [
-  { id: 1, title: 'Prendre RDV',        description: 'Nouvelle consultation', icon: CalendarIcon,          iconColor: 'text-blue-600',   bgColor: 'bg-blue-50',   link: '/patient/rendez-vous/nouveau' },
-  { id: 2, title: 'Rechercher médecin', description: 'Par spécialité',        icon: UserGroupIcon,         iconColor: 'text-emerald-600',bgColor: 'bg-emerald-50',link: '/patient/recherche-medecins' },
-  { id: 3, title: 'Consultation vidéo', description: 'Démarrer une visio',    icon: VideoCameraIcon,       iconColor: 'text-purple-600', bgColor: 'bg-purple-50', link: '/patient/consultation-video' },
-  { id: 4, title: 'Dossier médical',    description: 'Historique santé',      icon: DocumentArrowDownIcon, iconColor: 'text-amber-600',  bgColor: 'bg-amber-50',  link: '/patient/dossiers-medicaux' },
-  { id: 5, title: 'Messagerie',         description: 'Messages médecins',     icon: ChatBubbleLeftRightIcon,iconColor: 'text-red-600',   bgColor: 'bg-red-50',    link: '/patient/messages' },
-  { id: 6, title: 'Hôpitaux',          description: 'Proches de moi',        icon: BuildingOfficeIcon,    iconColor: 'text-indigo-600', bgColor: 'bg-indigo-50', link: '/patient/recherche-hopitaux' },
-  { id: 7, title: 'Paiement',          description: 'Payer consultation',     icon: CreditCardIcon,        iconColor: 'text-green-600',  bgColor: 'bg-green-50',  link: '/patient/paiement' },
-  { id: 8, title: 'Mon profil',        description: 'Modifier infos',         icon: UserCircleIcon,        iconColor: 'text-gray-600',   bgColor: 'bg-gray-50',   link: '/patient/profil' },
+  { id: 1, title: 'Prendre RDV', description: 'Nouvelle consultation', icon: CalendarIcon, iconColor: 'text-blue-600', bgColor: 'bg-blue-50', link: '/patient/rendez-vous/nouveau' },
+  { id: 2, title: 'Rechercher médecin', description: 'Par spécialité', icon: UserGroupIcon, iconColor: 'text-emerald-600', bgColor: 'bg-emerald-50', link: '/patient/recherche-medecins' },
+  { id: 3, title: 'Consultation vidéo', description: 'Démarrer une visio', icon: VideoCameraIcon, iconColor: 'text-purple-600', bgColor: 'bg-purple-50', link: '/patient/consultation-video' },
+  { id: 4, title: 'Dossier médical', description: 'Historique santé', icon: DocumentArrowDownIcon, iconColor: 'text-amber-600', bgColor: 'bg-amber-50', link: '/patient/dossiers-medicaux' },
+  { id: 5, title: 'Messagerie', description: 'Messages médecins', icon: ChatBubbleLeftRightIcon, iconColor: 'text-red-600', bgColor: 'bg-red-50', link: '/patient/messages' },
+  { id: 6, title: 'Hôpitaux', description: 'Proches de moi', icon: BuildingOfficeIcon, iconColor: 'text-indigo-600', bgColor: 'bg-indigo-50', link: '/patient/recherche-hopitaux' },
+  { id: 7, title: 'Paiement', description: 'Payer consultation', icon: CreditCardIcon, iconColor: 'text-green-600', bgColor: 'bg-green-50', link: '/patient/paiement' },
+  { id: 8, title: 'Mon profil', description: 'Modifier infos', icon: UserCircleIcon, iconColor: 'text-gray-600', bgColor: 'bg-gray-50', link: '/patient/profil' },
 ];
 
 // ============================================================
@@ -46,18 +46,18 @@ const Dashboard = () => {
   const user = JSON.parse(localStorage.getItem('user') || '{}');
 
   // ---- RDV ----
-  const [prochainRdv, setProchainRdv]   = useState(null);
-  const [rdvList, setRdvList]           = useState([]);
-  const [loadingRdv, setLoadingRdv]     = useState(true);
+  const [prochainRdv, setProchainRdv] = useState(null);
+  const [rdvList, setRdvList] = useState([]);
+  const [loadingRdv, setLoadingRdv] = useState(true);
 
   // ---- Documents ----
-  const [documents, setDocuments]           = useState([]);
-  const [loadingDocs, setLoadingDocs]       = useState(true);
+  const [documents, setDocuments] = useState([]);
+  const [loadingDocs, setLoadingDocs] = useState(true);
   const [totalDocsPending, setTotalDocsPending] = useState(0);
 
   // ---- Messages ----
   const [unreadMessages, setUnreadMessages] = useState(0);
-  const [loadingMsg, setLoadingMsg]         = useState(true);
+  const [loadingMsg, setLoadingMsg] = useState(true);
 
   // ============================================================
   // CHARGEMENT : RDV
@@ -199,11 +199,11 @@ const Dashboard = () => {
   // ============================================================
   const docTypeLabel = (type) => {
     const map = {
-      'compte_rendu':   { label: 'Compte-rendu', cls: 'bg-blue-100 text-blue-800' },
-      'ordonnance':     { label: 'Ordonnance',   cls: 'bg-amber-100 text-amber-800' },
-      'analyse':        { label: 'Analyse',      cls: 'bg-purple-100 text-purple-800' },
-      'radio':          { label: 'Radio',        cls: 'bg-indigo-100 text-indigo-800' },
-      'autre':          { label: 'Autre',        cls: 'bg-gray-100 text-gray-800' },
+      'compte_rendu': { label: 'Compte-rendu', cls: 'bg-blue-100 text-blue-800' },
+      'ordonnance': { label: 'Ordonnance', cls: 'bg-amber-100 text-amber-800' },
+      'analyse': { label: 'Analyse', cls: 'bg-purple-100 text-purple-800' },
+      'radio': { label: 'Radio', cls: 'bg-indigo-100 text-indigo-800' },
+      'autre': { label: 'Autre', cls: 'bg-gray-100 text-gray-800' },
     };
     return map[type] || { label: type || 'Document', cls: 'bg-gray-100 text-gray-800' };
   };
@@ -322,21 +322,19 @@ const Dashboard = () => {
                         </p>
                       </div>
                       <div className="flex items-center gap-2 flex-shrink-0">
-                        <span className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium ${
-                          rdv.type === 'video'
+                        <span className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium ${rdv.type === 'video'
                             ? 'bg-purple-50 text-purple-700'
                             : 'bg-teal-50 text-teal-700'
-                        }`}>
+                          }`}>
                           {rdv.type === 'video'
                             ? <><VideoCameraIcon className="h-3 w-3" /> Vidéo</>
                             : <><MapPinIcon className="h-3 w-3" /> Présentiel</>
                           }
                         </span>
-                        <span className={`inline-flex px-3 py-1 rounded-full text-xs font-medium ${
-                          rdv.status === 'confirmed'
+                        <span className={`inline-flex px-3 py-1 rounded-full text-xs font-medium ${rdv.status === 'confirmed'
                             ? 'bg-emerald-50 text-emerald-700'
                             : 'bg-yellow-50 text-yellow-700'
-                        }`}>
+                          }`}>
                           {rdv.status === 'confirmed' ? 'Confirmé' : 'En attente'}
                         </span>
                       </div>
@@ -350,7 +348,27 @@ const Dashboard = () => {
                         <CreditCardIcon className="h-4 w-4" />
                         Payer
                       </Link>
-                      <Link to="/patient/avis" className="inline-flex items-center gap-1.5 text-sm font-medium text-blue-600 hover:text-blue-700">
+                      <Link
+                        to="/patient/avis"
+                        state={{
+                          consultation: {
+                            id: rdv.id,
+                            appointmentId: rdv.id,
+                            doctor: {
+                              id: rdv.doctor,
+                              name: rdv.doctor_full_name || rdv.doctor_name || 'Médecin',
+                              specialty: rdv.doctor_specialization || rdv.doctor_specialty || '',
+                              avatar: '/api/placeholder/100/100',
+                            },
+                            date: new Date(rdv.date).toLocaleDateString('fr-FR', {
+                              day: 'numeric', month: 'long', year: 'numeric'
+                            }),
+                            time: rdv.time ? rdv.time.slice(0, 5) : '',
+                            type: rdv.type === 'video' ? 'En ligne' : 'Présentiel',
+                          }
+                        }}
+                        className="inline-flex items-center gap-1.5 text-sm font-medium text-blue-600 hover:text-blue-700"
+                      >
                         <StarIcon className="h-4 w-4" />
                         Avis
                       </Link>

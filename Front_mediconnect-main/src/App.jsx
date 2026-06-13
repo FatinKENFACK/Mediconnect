@@ -81,6 +81,7 @@ import DoctorStatistics from './pages/doctor/DoctorStatistics';
 import ParametresDoctor from './pages/doctor/ParametresDoctor';
 
 // Layout et pages admin
+import ReviewManagement from './pages/admin/ReviewManagement';
 import AdminLayout from './layouts/AdminLayout';
 import AdminDashboard from './pages/admin/Dashboard';
 import HospitalManagement from './pages/admin/HospitalManagement';
@@ -208,6 +209,7 @@ function App() {
             <Route path="sauvegardes" element={<BackupManagement />} />
             <Route path="confidentialite" element={<PrivacyManagement />} />
             <Route path="parametres" element={<Settings />} />
+            <Route path="avis" element={<ReviewManagement />} />
           </Route>
           
           <Route path="*" element={<Navigate to="/" replace />} />

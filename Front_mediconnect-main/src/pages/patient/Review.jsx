@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
+import api from '../../services/api';
 import { useLocation, Link } from 'react-router-dom';
-import { 
+import {
   StarIcon,
   ChatBubbleLeftRightIcon,
   CalendarIcon,
@@ -33,21 +34,29 @@ export default function Review() {
   const [submitted, setSubmitted] = useState(false);
   const [errors, setErrors] = useState({});
 
-  // Mock consultation data - en pratique, viendrait de l'état de navigation ou d'une API
-  const consultation = location.state?.consultation || {
-    id: 'CONS-2024-001',
-    doctor: {
-      id: 1,
-      name: 'Dr. Martin Dupont',
-      specialty: 'Médecine générale',
-      avatar: '/api/placeholder/100/100'
-    },
-    date: '15 Décembre 2023',
-    time: '14:30',
-    type: 'En ligne',
-    duration: '30 minutes'
-  };
+  const consultation = location.state?.consultation || null;
 
+  // Garde-fou — après tous les hooks
+  if (!consultation) {
+    return (
+      <div className="max-w-2xl mx-auto px-4 py-16 text-center">
+        <StarIcon className="mx-auto h-12 w-12 text-gray-300 mb-4" />
+        <h2 className="text-xl font-semibold text-gray-900 mb-2">
+          Aucune consultation sélectionnée
+        </h2>
+        <p className="text-gray-500 mb-6">
+          Pour donner un avis, accédez à vos rendez-vous terminés et cliquez sur "Donner un avis".
+        </p>
+        <Link
+          to="/patient/rendez-vous"
+          className="inline-flex items-center px-5 py-2.5 bg-teal-600 text-white rounded-lg hover:bg-teal-700 font-medium"
+        >
+          <ArrowLeftIcon className="h-4 w-4 mr-2" />
+          Voir mes rendez-vous
+        </Link>
+      </div>
+    );
+  }
   const validateForm = () => {
     const newErrors = {};
 
@@ -69,18 +78,21 @@ export default function Review() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
-    if (!validateForm()) {
-      return;
-    }
-
+    if (!validateForm()) return;
     setIsSubmitting(true);
-
-    // Simuler l'envoi de l'avis
-    setTimeout(() => {
-      setIsSubmitting(false);
+    try {
+      await api.createReview({
+        doctor: consultation.doctor.id,
+        appointment: consultation.appointmentId || null,
+        rating: rating,
+        comment: review,
+      });
       setSubmitted(true);
-    }, 2000);
+    } catch (err) {
+      setErrors({ submit: err.message || 'Erreur lors de la publication de l\'avis.' });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleAspectRating = (aspect, value) => {
@@ -97,11 +109,11 @@ export default function Review() {
           <div className="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-green-100 mb-6">
             <CheckCircleIcon className="h-8 w-8 text-green-600" />
           </div>
-          
+
           <h1 className="text-2xl font-bold text-gray-900 mb-4">
             Merci pour votre avis !
           </h1>
-          
+
           <p className="text-gray-600 mb-8">
             Votre évaluation a été publiée avec succès. Elle aidera d'autres patients à faire leur choix.
           </p>
@@ -162,7 +174,7 @@ export default function Review() {
         <div className="lg:col-span-1">
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 sticky top-6">
             <h2 className="text-lg font-semibold text-gray-900 mb-4">Consultation évaluée</h2>
-            
+
             <div className="flex items-center gap-4 mb-6">
               <img
                 src={consultation.doctor.avatar}
@@ -218,7 +230,7 @@ export default function Review() {
                 Note générale
                 <span className="text-red-500 ml-1">*</span>
               </h2>
-              
+
               <div className="flex items-center gap-4">
                 <div className="flex">
                   {[...Array(5)].map((_, i) => (
@@ -231,11 +243,10 @@ export default function Review() {
                       className="p-1 transition-colors"
                     >
                       <StarIcon
-                        className={`h-8 w-8 ${
-                          i < (hoverRating || rating)
-                            ? 'text-yellow-400'
-                            : 'text-gray-300 hover:text-yellow-400'
-                        }`}
+                        className={`h-8 w-8 ${i < (hoverRating || rating)
+                          ? 'text-yellow-400'
+                          : 'text-gray-300 hover:text-yellow-400'
+                          }`}
                       />
                     </button>
                   ))}
@@ -244,7 +255,7 @@ export default function Review() {
                   {rating > 0 ? `${rating}/5` : 'Sélectionnez une note'}
                 </span>
               </div>
-              
+
               {errors.rating && (
                 <p className="mt-2 text-sm text-red-600">{errors.rating}</p>
               )}
@@ -260,7 +271,7 @@ export default function Review() {
               <h2 className="text-lg font-semibold text-gray-900 mb-4">
                 Évaluation détaillée
               </h2>
-              
+
               <div className="space-y-4">
                 <div>
                   <div className="flex justify-between items-center mb-2">
@@ -280,11 +291,10 @@ export default function Review() {
                         className="p-1"
                       >
                         <StarIcon
-                          className={`h-6 w-6 ${
-                            i < aspects.professionalism
-                              ? 'text-yellow-400'
-                              : 'text-gray-300 hover:text-yellow-400'
-                          }`}
+                          className={`h-6 w-6 ${i < aspects.professionalism
+                            ? 'text-yellow-400'
+                            : 'text-gray-300 hover:text-yellow-400'
+                            }`}
                         />
                       </button>
                     ))}
@@ -309,11 +319,10 @@ export default function Review() {
                         className="p-1"
                       >
                         <StarIcon
-                          className={`h-6 w-6 ${
-                            i < aspects.communication
-                              ? 'text-yellow-400'
-                              : 'text-gray-300 hover:text-yellow-400'
-                          }`}
+                          className={`h-6 w-6 ${i < aspects.communication
+                            ? 'text-yellow-400'
+                            : 'text-gray-300 hover:text-yellow-400'
+                            }`}
                         />
                       </button>
                     ))}
@@ -338,11 +347,10 @@ export default function Review() {
                         className="p-1"
                       >
                         <StarIcon
-                          className={`h-6 w-6 ${
-                            i < aspects.punctuality
-                              ? 'text-yellow-400'
-                              : 'text-gray-300 hover:text-yellow-400'
-                          }`}
+                          className={`h-6 w-6 ${i < aspects.punctuality
+                            ? 'text-yellow-400'
+                            : 'text-gray-300 hover:text-yellow-400'
+                            }`}
                         />
                       </button>
                     ))}
@@ -367,11 +375,10 @@ export default function Review() {
                         className="p-1"
                       >
                         <StarIcon
-                          className={`h-6 w-6 ${
-                            i < aspects.environment
-                              ? 'text-yellow-400'
-                              : 'text-gray-300 hover:text-yellow-400'
-                          }`}
+                          className={`h-6 w-6 ${i < aspects.environment
+                            ? 'text-yellow-400'
+                            : 'text-gray-300 hover:text-yellow-400'
+                            }`}
                         />
                       </button>
                     ))}
@@ -386,17 +393,16 @@ export default function Review() {
                 Votre commentaire
                 <span className="text-red-500 ml-1">*</span>
               </h2>
-              
+
               <textarea
                 value={review}
                 onChange={(e) => setReview(e.target.value)}
                 placeholder="Décrivez votre expérience lors de cette consultation. Qu'est-ce qui s'est bien passé ? Qu'est-ce qui pourrait être amélioré ?"
                 rows={6}
-                className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none ${
-                  errors.review ? 'border-red-500' : 'border-gray-300'
-                }`}
+                className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none ${errors.review ? 'border-red-500' : 'border-gray-300'
+                  }`}
               />
-              
+
               <div className="flex justify-between items-center mt-2">
                 <span className="text-sm text-gray-500">
                   {review.length}/1000 caractères
@@ -426,29 +432,27 @@ export default function Review() {
               <h2 className="text-lg font-semibold text-gray-900 mb-4">
                 Recommanderiez-vous ce médecin ?
               </h2>
-              
+
               <div className="flex gap-4">
                 <button
                   type="button"
                   onClick={() => setRecommend(true)}
-                  className={`flex items-center gap-2 px-6 py-3 rounded-lg border-2 transition-colors ${
-                    recommend === true
-                      ? 'border-green-500 bg-green-50 text-green-700'
-                      : 'border-gray-300 text-gray-700 hover:border-gray-400'
-                  }`}
+                  className={`flex items-center gap-2 px-6 py-3 rounded-lg border-2 transition-colors ${recommend === true
+                    ? 'border-green-500 bg-green-50 text-green-700'
+                    : 'border-gray-300 text-gray-700 hover:border-gray-400'
+                    }`}
                 >
                   <HandThumbUpIcon className="h-5 w-5" />
                   Oui, je recommande
                 </button>
-                
+
                 <button
                   type="button"
                   onClick={() => setRecommend(false)}
-                  className={`flex items-center gap-2 px-6 py-3 rounded-lg border-2 transition-colors ${
-                    recommend === false
-                      ? 'border-red-500 bg-red-50 text-red-700'
-                      : 'border-gray-300 text-gray-700 hover:border-gray-400'
-                  }`}
+                  className={`flex items-center gap-2 px-6 py-3 rounded-lg border-2 transition-colors ${recommend === false
+                    ? 'border-red-500 bg-red-50 text-red-700'
+                    : 'border-gray-300 text-gray-700 hover:border-gray-400'
+                    }`}
                 >
                   <HandThumbDownIcon className="h-5 w-5" />
                   Non, je ne recommande pas
@@ -474,6 +478,11 @@ export default function Review() {
 
             {/* Bouton de soumission */}
             <div className="flex gap-4">
+              {errors.submit && (
+                <div className="p-4 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
+                  {errors.submit}
+                </div>
+              )}
               <Link
                 to="/patient/rendez-vous"
                 className="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium"

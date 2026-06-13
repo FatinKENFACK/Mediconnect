@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import api from '../../services/api';
 import {
   StarIcon,
   ChatBubbleLeftRightIcon,
@@ -24,84 +25,31 @@ const HospitalReviews = () => {
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
-    const mockReviews = [
-      {
-        id: 1,
-        patient: 'Jean Dupont',
-        patientEmail: 'jean.dupont@email.com',
-        rating: 5,
-        title: 'Excellent service',
-        comment: 'Professionnalisme exceptionnel de toute l\'équipe. Le personnel est très attentif et les installations sont modernes. Je recommande vivement cet hôpital.',
-        date: '2024-01-15',
-        service: 'Cardiologie',
-        doctor: 'Dr. Martin Laurent',
-        status: 'published',
-        response: null,
-        helpful: 12,
-        verified: true
-      },
-      {
-        id: 2,
-        patient: 'Marie Laurent',
-        patientEmail: 'marie.laurent@email.com',
-        rating: 4,
-        title: 'Bonne expérience',
-        comment: 'Service de qualité, personnel compétent. Seul petit point négatif : temps d\'attente un peu long pour le rendez-vous.',
-        date: '2024-01-12',
-        service: 'Pédiatrie',
-        doctor: 'Dr. Sophie Bernard',
-        status: 'published',
-        response: null,
-        helpful: 8,
-        verified: true
-      },
-      {
-        id: 3,
-        patient: 'Pierre Dubois',
-        patientEmail: 'pierre.dubois@email.com',
-        rating: 3,
-        title: 'Service correct',
-        comment: 'Le service était correct mais pourrait être amélioré au niveau de l\'accueil et de la communication.',
-        date: '2024-01-10',
-        service: 'Radiologie',
-        doctor: 'Dr. Pierre Dubois',
-        status: 'pending',
-        response: null,
-        helpful: 3,
-        verified: false
-      },
-      {
-        id: 4,
-        patient: 'Sophie Martin',
-        patientEmail: 'sophie.martin@email.com',
-        rating: 5,
-        title: 'Exceptionnel',
-        comment: 'Une expérience médicale des plus positives. Le Dr. Lefebvre est excellente et le personnel est très professionnel.',
-        date: '2024-01-08',
-        service: 'Gynécologie',
-        doctor: 'Dr. Marie Lefebvre',
-        status: 'published',
-        response: 'Merci beaucoup pour votre avis positif. Nous sommes ravis que votre expérience ait été excellente.',
-        helpful: 15,
-        verified: true
-      },
-      {
-        id: 5,
-        patient: 'Antoine Bernard',
-        patientEmail: 'antoine.bernard@email.com',
-        rating: 2,
-        title: 'Décevant',
-        comment: 'Temps d\'attente très long et personnel peu disponible. Les installations sont vieillissantes.',
-        date: '2024-01-05',
-        service: 'Urgences',
-        doctor: 'Service d\'urgence',
-        status: 'reported',
-        response: null,
-        helpful: 1,
-        verified: false
+    const loadReviews = async () => {
+      try {
+        const data = await api.getHospitalReviews();
+        const list = data.reviews || [];
+        const mapped = list.map(r => ({
+          id:          r.id,
+          patient:     r.patient_name,
+          patientEmail:'',
+          rating:      r.rating,
+          title:       '',
+          comment:     r.comment,
+          date:        r.created_at?.split('T')[0] || '',
+          service:     r.doctor_specialization || '',
+          doctor:      r.doctor_name || '',
+          status:      r.status === 'approved' ? 'published' : r.status,
+          response:    null,
+          helpful:     0,
+          verified:    true,
+        }));
+        setReviews(mapped);
+      } catch (err) {
+        console.error('Erreur chargement avis hôpital:', err);
       }
-    ];
-    setReviews(mockReviews);
+    };
+    loadReviews();
   }, []);
 
   const filteredReviews = reviews.filter(review => {

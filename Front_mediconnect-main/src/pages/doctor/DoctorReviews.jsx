@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import api from '../../services/api';
 import { 
   StarIcon,
   CheckCircleIcon,
@@ -24,116 +25,36 @@ export default function DoctorReviews() {
   const [replyText, setReplyText] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Mock reviews data
-  const mockReviews = [
-    {
-      id: 1,
-      patientName: 'Thomas Fotsing',
-      patientEmail: 'thomas.fotsing@email.com',
-      patientAvatar: '/api/placeholder/40/40',
-      consultationId: 'CONS-2024-001',
-      consultationDate: '2024-12-10',
-      consultationType: 'presentiel',
-      specialty: 'Médecine générale',
-      rating: 5,
-      title: 'Excellente consultation',
-      content: 'Le Dr. Tchinda est très professionnel et à l\'écoute. Il a pris le temps de bien expliquer mon diagnostic et de répondre à toutes mes questions. Je recommande vivement!',
-      categories: {
-        professionalism: 5,
-        communication: 5,
-        punctuality: 5,
-        knowledge: 5,
-        environment: 5
-      },
-      helpful: 15,
-      status: 'published',
-      createdAt: '2024-12-11T10:30:00Z',
-      reply: null,
-      reported: false
-    },
-    {
-      id: 2,
-      patientName: 'Marie Kengne',
-      patientEmail: 'marie.kengne@email.com',
-      patientAvatar: '/api/placeholder/40/40',
-      consultationId: 'CONS-2024-002',
-      consultationDate: '2024-12-08',
-      consultationType: 'video',
-      specialty: 'Médecine générale',
-      rating: 4,
-      title: 'Bonne consultation en ligne',
-      content: 'La visioconférence s\'est bien déroulée. Le médecin a été clair dans ses explications. J\'aurais aimé avoir un peu plus de temps pour poser des questions.',
-      categories: {
-        professionalism: 5,
-        communication: 4,
-        punctuality: 5,
-        knowledge: 4,
-        environment: 4
-      },
-      helpful: 12,
-      status: 'published',
-      createdAt: '2024-12-09T14:15:00Z',
-      reply: {
-        content: 'Merci pour votre avis Marie. Je note votre retour concernant le temps et m\'efforcerai d\'accorder plus de temps lors de nos prochaines consultations. N\'hésitez pas si vous avez d\'autres questions.',
-        createdAt: '2024-12-09T16:00:00Z'
-      },
-      reported: false
-    },
-    {
-      id: 3,
-      patientName: 'Jean Mballa',
-      patientEmail: 'jean.mballa@email.com',
-      patientAvatar: '/api/placeholder/40/40',
-      consultationId: 'CONS-2024-003',
-      consultationDate: '2024-12-05',
-      consultationType: 'presentiel',
-      specialty: 'Cardiologie',
-      rating: 5,
-      title: 'Très satisfait',
-      content: 'Consultation cardiologique très complète. Le Dr. Tchinda a pris le temps d\'analyser mes résultats et de m\'expliquer en détail mon traitement. Suivi prévu dans 2 semaines.',
-      categories: {
-        professionalism: 5,
-        communication: 5,
-        punctuality: 5,
-        knowledge: 5,
-        environment: 5
-      },
-      helpful: 18,
-      status: 'published',
-      createdAt: '2024-12-06T09:45:00Z',
-      reply: null,
-      reported: false
-    },
-    {
-      id: 4,
-      patientName: 'Utilisateur anonyme',
-      patientEmail: 'anonymous@email.com',
-      patientAvatar: '/api/placeholder/40/40',
-      consultationId: 'CONS-2024-004',
-      consultationDate: '2024-12-01',
-      consultationType: 'video',
-      specialty: 'Médecine générale',
-      rating: 2,
-      title: 'Déçu de la consultation',
-      content: 'Connexion de mauvaise qualité, consultation interrompue plusieurs fois. Le médecin semblait pressé et n\'a pas répondu clairement à mes questions.',
-      categories: {
-        professionalism: 2,
-        communication: 2,
-        punctuality: 3,
-        knowledge: 3,
-        environment: 2
-      },
-      helpful: 3,
-      status: 'pending',
-      createdAt: '2024-12-02T11:20:00Z',
-      reply: null,
-      reported: false
-    }
-  ];
 
-  useEffect(() => {
-    setReviews(mockReviews);
-    setFilteredReviews(mockReviews);
+ useEffect(() => {
+    const loadReviews = async () => {
+      try {
+        const data = await api.getDoctorMyReviews();
+        const list = data.reviews || [];
+        const mapped = list.map(r => ({
+          id:               r.id,
+          patientName:      r.patient_name,
+          patientEmail:     '',
+          patientAvatar:    '/api/placeholder/40/40',
+          consultationDate: r.created_at?.split('T')[0] || '',
+          consultationType: 'presentiel',
+          rating:           r.rating,
+          title:            '',
+          content:          r.comment,
+          categories:       {},
+          helpful:          0,
+          status:           r.status === 'approved' ? 'published' : r.status,
+          createdAt:        r.created_at,
+          reply:            null,
+          reported:         false,
+        }));
+        setReviews(mapped);
+        setFilteredReviews(mapped);
+      } catch (err) {
+        console.error('Erreur chargement avis:', err);
+      }
+    };
+    loadReviews();
   }, []);
 
   useEffect(() => {

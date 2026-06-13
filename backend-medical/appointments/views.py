@@ -5,6 +5,7 @@ from django.utils import timezone
 import datetime
 from accounts.models import Doctor
 from django.contrib.auth import get_user_model
+from accounts.models import Doctor
 
 from .models import Appointment, DoctorAvailability, Prescription, PrescriptionItem
 from .serializers import (
@@ -443,3 +444,25 @@ class HospitalPatientRecordsView(APIView):
             })
 
         return Response(result)
+
+
+from accounts.permissions import IsHospitalRole
+
+class DoctorAvailabilityByIdView(APIView):
+    permission_classes = [permissions.IsAuthenticated, IsHospitalRole]
+
+    def get(self, request, doctor_id):
+        try:
+            hospital = request.user.hospital
+        except Exception:
+            return Response({'error': 'Profil hôpital introuvable'}, status=403)
+
+        from accounts.models import Doctor
+        try:
+            doctor = Doctor.objects.get(id=doctor_id, hospital=hospital)
+        except Doctor.DoesNotExist:
+            return Response({'error': 'Médecin introuvable dans votre établissement'}, status=404)
+
+        availabilities = DoctorAvailability.objects.filter(doctor=doctor)
+        return Response(DoctorAvailabilitySerializer(availabilities, many=True).data)
+
