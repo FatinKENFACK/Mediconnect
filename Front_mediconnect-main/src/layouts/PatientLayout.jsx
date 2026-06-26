@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, Fragment } from 'react';
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
-import { 
+import GlobalSearchBar from '../components/GlobalSearchBar';
+import {
   HomeIcon,
   CalendarIcon,
   DocumentTextIcon,
@@ -100,7 +101,7 @@ const PatientLayout = () => {
   const unreadCount = notifications.filter(n => !n.read).length;
 
   const markAsRead = (id) => {
-    setNotifications(notifications.map(notification => 
+    setNotifications(notifications.map(notification =>
       notification.id === id ? { ...notification, read: true } : notification
     ));
   };
@@ -131,11 +132,11 @@ const PatientLayout = () => {
   }, []);
 
   useEffect(() => {
-  const storedUser = localStorage.getItem("user");
-  if (storedUser) {
-    setUser(JSON.parse(storedUser));
-  }
-}, []);
+    const storedUser = localStorage.getItem("user");
+    if (storedUser) {
+      setUser(JSON.parse(storedUser));
+    }
+  }, []);
 
   const toggleSidebar = () => {
     if (isMobile) {
@@ -153,71 +154,71 @@ const PatientLayout = () => {
   };
 
   const navigation = [
-    { 
-      name: 'Tableau de bord', 
-      href: '/patient/dashboard', 
+    {
+      name: 'Tableau de bord',
+      href: '/patient/dashboard',
       icon: HomeIcon,
       exact: true
     },
-    { 
-      name: 'Rendez-vous', 
-      href: '/patient/rendez-vous', 
+    {
+      name: 'Rendez-vous',
+      href: '/patient/rendez-vous',
       icon: CalendarIcon,
       subItems: [
         { name: 'Prendre RDV', href: '/patient/rendez-vous/nouveau', icon: PlusIcon },
         { name: 'Mes RDV', href: '/patient/rendez-vous', icon: CalendarIcon }
       ]
     },
-    { 
-      name: 'Rechercher médecin', 
-      href: '/patient/recherche-medecins', 
-      icon: UserGroupIcon 
+    {
+      name: 'Rechercher médecin',
+      href: '/patient/recherche-medecins',
+      icon: UserGroupIcon
     },
-    { 
-      name: 'Hôpitaux', 
-      href: '/patient/recherche-hopitaux', 
-      icon: BuildingOfficeIcon 
+    {
+      name: 'Hôpitaux',
+      href: '/patient/recherche-hopitaux',
+      icon: BuildingOfficeIcon
     },
-    { 
-      name: 'Dossiers médicaux', 
-      href: '/patient/dossiers-medicaux', 
-      icon: DocumentTextIcon 
+    {
+      name: 'Dossiers médicaux',
+      href: '/patient/dossiers-medicaux',
+      icon: DocumentTextIcon
     },
-    { 
-      name: 'Documents', 
-      href: '/patient/documents', 
-      icon: DocumentIcon 
+    {
+      name: 'Documents',
+      href: '/patient/documents',
+      icon: DocumentIcon
     },
-    { 
-      name: 'Consultation vidéo', 
-      href: '/patient/consultation-video', 
-      icon: VideoCameraIcon 
+    {
+      name: 'Consultation vidéo',
+      href: '/patient/consultation-video',
+      icon: VideoCameraIcon
     },
-    { 
-      name: 'Messagerie', 
-      href: '/patient/messages', 
-      icon: ChatBubbleLeftRightIcon, 
-      badge: 3 
+    {
+      name: 'Messagerie',
+      href: '/patient/messages',
+      icon: ChatBubbleLeftRightIcon,
+      badge: 3
     },
-    { 
-      name: 'Paiement', 
-      href: '/patient/paiement', 
-      icon: CreditCardIcon 
+    {
+      name: 'Paiement',
+      href: '/patient/paiement',
+      icon: CreditCardIcon
     },
-    { 
-      name: 'Avis', 
-      href: '/patient/avis', 
-      icon: StarIcon 
+    {
+      name: 'Avis',
+      href: '/patient/avis',
+      icon: StarIcon
     },
-    { 
-      name: 'Mon profil', 
-      href: '/patient/profil', 
-      icon: UserCircleIcon 
+    {
+      name: 'Mon profil',
+      href: '/patient/profil',
+      icon: UserCircleIcon
     },
-    { 
-      name: 'Aide & Support', 
-      href: '/patient/aide', 
-      icon: QuestionMarkCircleIcon 
+    {
+      name: 'Aide & Support',
+      href: '/patient/aide',
+      icon: QuestionMarkCircleIcon
     }
   ];
 
@@ -230,25 +231,23 @@ const PatientLayout = () => {
 
   const renderNavItem = (item) => {
     const hasSubItems = item.subItems && item.subItems.length > 0;
-    const isItemActive = isActive(item.href, item.exact) || 
+    const isItemActive = isActive(item.href, item.exact) ||
       (hasSubItems && item.subItems.some(subItem => isActive(subItem.href)));
-    
+
     return (
       <li key={item.name}>
         {hasSubItems ? (
           <>
             <button
               onClick={() => toggleSubmenu(item.name)}
-              className={`group flex items-center w-full px-2 py-2 text-sm font-medium rounded-md ${
-                isItemActive 
-                  ? 'bg-primary-50 text-primary-600' 
+              className={`group flex items-center w-full px-2 py-2 text-sm font-medium rounded-md ${isItemActive
+                  ? 'bg-primary-50 text-primary-600'
                   : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
-              }`}
+                }`}
             >
               <item.icon
-                className={`mr-3 h-6 w-6 flex-shrink-0 ${
-                  isItemActive ? 'text-primary-500' : 'text-gray-400 group-hover:text-gray-500'
-                }`}
+                className={`mr-3 h-6 w-6 flex-shrink-0 ${isItemActive ? 'text-primary-500' : 'text-gray-400 group-hover:text-gray-500'
+                  }`}
                 aria-hidden="true"
               />
               {!collapsed && (
@@ -267,23 +266,21 @@ const PatientLayout = () => {
                 </>
               )}
             </button>
-            
+
             {(!collapsed || isMobile) && (openSubmenus[item.name] || isItemActive) && (
               <ul className="mt-1 space-y-1 pl-4">
                 {item.subItems.map((subItem) => (
                   <li key={subItem.name}>
                     <Link
                       to={subItem.href}
-                      className={`group flex items-center px-2 py-2 text-sm font-medium rounded-md ${
-                        isActive(subItem.href, true)
+                      className={`group flex items-center px-2 py-2 text-sm font-medium rounded-md ${isActive(subItem.href, true)
                           ? 'bg-gray-100 text-primary-600'
                           : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
-                      }`}
+                        }`}
                     >
                       <subItem.icon
-                        className={`mr-3 h-5 w-5 ${
-                          isActive(subItem.href, true) ? 'text-primary-500' : 'text-gray-400 group-hover:text-gray-500'
-                        }`}
+                        className={`mr-3 h-5 w-5 ${isActive(subItem.href, true) ? 'text-primary-500' : 'text-gray-400 group-hover:text-gray-500'
+                          }`}
                         aria-hidden="true"
                       />
                       {!collapsed && (
@@ -298,16 +295,14 @@ const PatientLayout = () => {
         ) : (
           <Link
             to={item.href}
-            className={`group flex items-center px-2 py-2 text-sm font-medium rounded-md ${
-              isActive(item.href, item.exact)
+            className={`group flex items-center px-2 py-2 text-sm font-medium rounded-md ${isActive(item.href, item.exact)
                 ? 'bg-primary-50 text-primary-600'
                 : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
-            }`}
+              }`}
           >
             <item.icon
-              className={`mr-3 h-6 w-6 flex-shrink-0 ${
-                isActive(item.href, item.exact) ? 'text-primary-500' : 'text-gray-400 group-hover:text-gray-500'
-              }`}
+              className={`mr-3 h-6 w-6 flex-shrink-0 ${isActive(item.href, item.exact) ? 'text-primary-500' : 'text-gray-400 group-hover:text-gray-500'
+                }`}
               aria-hidden="true"
             />
             {!collapsed && (
@@ -332,8 +327,8 @@ const PatientLayout = () => {
       {sidebarOpen && (
         <div className="fixed inset-0 flex z-40 md:hidden">
           <div className="fixed inset-0">
-            <div 
-              className="absolute inset-0 bg-gray-600 bg-opacity-75" 
+            <div
+              className="absolute inset-0 bg-gray-600 bg-opacity-75"
               onClick={() => setSidebarOpen(false)}
             />
           </div>
@@ -384,9 +379,8 @@ const PatientLayout = () => {
       )}
 
       {/* Desktop sidebar */}
-      <div className={`hidden md:flex md:flex-shrink-0 transition-all duration-300 ease-in-out ${
-        collapsed ? 'w-20' : 'w-64'
-      }`}>
+      <div className={`hidden md:flex md:flex-shrink-0 transition-all duration-300 ease-in-out ${collapsed ? 'w-20' : 'w-64'
+        }`}>
         <div className="flex flex-col w-full border-r border-gray-200 bg-white">
           <div className="flex-1 flex flex-col pt-5 pb-4 overflow-y-auto">
             <div className="flex items-center justify-between px-4">
@@ -428,9 +422,8 @@ const PatientLayout = () => {
               )}
               <button
                 type="button"
-                className={`ml-auto flex-shrink-0 p-1 rounded-full text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 ${
-                  collapsed ? 'mx-auto' : ''
-                }`}
+                className={`ml-auto flex-shrink-0 p-1 rounded-full text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 ${collapsed ? 'mx-auto' : ''
+                  }`}
                 onClick={() => navigate('/logout')}
                 title="Déconnexion"
               >
@@ -452,7 +445,7 @@ const PatientLayout = () => {
             <span className="sr-only">Ouvrir le menu</span>
             <Bars3Icon className="h-6 w-6" aria-hidden="true" />
           </button>
-          
+
           {/* Bouton de bascule pour la version desktop */}
           <button
             type="button"
@@ -466,27 +459,14 @@ const PatientLayout = () => {
               <ChevronLeftIcon className="h-6 w-6" />
             )}
           </button>
-          
+
           <div className="flex-1 px-4 flex justify-between">
             <div className="flex-1 flex">
               <div className="w-full flex md:ml-0">
-                <div className="relative w-full max-w-md text-gray-400 focus-within:text-gray-600">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <MagnifyingGlassIcon className="h-5 w-5" />
-                  </div>
-                  <input
-                    id="search"
-                    name="search"
-                    className="block w-full bg-white py-2 pl-10 pr-3 border border-transparent rounded-md leading-5 text-gray-900 placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
-                    placeholder="Rechercher"
-                    type="search"
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                  />
-                </div>
+                <GlobalSearchBar role="patient" placeholder="Rechercher un médecin, un hôpital..." />
               </div>
             </div>
-            
+
             <div className="ml-4 flex items-center md:ml-6 space-x-3">
               <Link
                 to="/patient/messages"
@@ -537,7 +517,7 @@ const PatientLayout = () => {
                       {notifications.length > 0 ? (
                         <div className="divide-y divide-gray-100">
                           {notifications.map((notification) => (
-                            <div 
+                            <div
                               key={notification.id}
                               className={`p-4 hover:bg-gray-50 cursor-pointer ${!notification.read ? 'bg-blue-50' : ''}`}
                               onClick={() => {
@@ -612,9 +592,9 @@ const PatientLayout = () => {
                     <div className="h-8 w-8 rounded-full bg-gray-200 flex items-center justify-center">
                       <UserIcon className="h-5 w-5 text-gray-600" />
                     </div>
-                    <ChevronDownIcon 
-                      className={`ml-1 h-4 w-4 text-gray-500 transition-transform duration-200 ${profileOpen ? 'transform rotate-180' : ''}`} 
-                      aria-hidden="true" 
+                    <ChevronDownIcon
+                      className={`ml-1 h-4 w-4 text-gray-500 transition-transform duration-200 ${profileOpen ? 'transform rotate-180' : ''}`}
+                      aria-hidden="true"
                     />
                   </button>
                 </div>

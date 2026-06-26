@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, Fragment } from 'react';
 import { useAuth } from '../contexts/AuthContext';
+import GlobalSearchBar from '../components/GlobalSearchBar';
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
 import { useMediaQuery } from 'react-responsive';
 import {
@@ -255,8 +256,8 @@ const DoctorLayout = () => {
             <button
               onClick={() => toggleSubmenu(item.name)}
               className={`group flex items-center w-full px-2 py-2 text-sm font-medium rounded-md transition-colors ${isItemActive
-                  ? 'bg-blue-50 text-blue-600'
-                  : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                ? 'bg-blue-50 text-blue-600'
+                : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
                 }`}
             >
               <item.icon
@@ -288,8 +289,8 @@ const DoctorLayout = () => {
                     <Link
                       to={subItem.href}
                       className={`group flex items-center px-2 py-2 text-sm font-medium rounded-md transition-colors ${isActive(subItem.href, true)
-                          ? 'bg-gray-100 text-blue-600'
-                          : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                        ? 'bg-gray-100 text-blue-600'
+                        : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
                         }`}
                     >
                       <subItem.icon
@@ -310,8 +311,8 @@ const DoctorLayout = () => {
           <Link
             to={item.href}
             className={`group flex items-center px-2 py-2 text-sm font-medium rounded-md transition-colors ${isActive(item.href, item.exact)
-                ? 'bg-blue-50 text-blue-600'
-                : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+              ? 'bg-blue-50 text-blue-600'
+              : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
               }`}
           >
             <item.icon
@@ -477,20 +478,7 @@ const DoctorLayout = () => {
           <div className="flex-1 px-4 flex justify-between">
             <div className="flex-1 flex">
               <div className="w-full flex md:ml-0">
-                <div className="relative w-full max-w-md text-gray-400 focus-within:text-gray-600">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <MagnifyingGlassIcon className="h-5 w-5" />
-                  </div>
-                  <input
-                    id="search"
-                    name="search"
-                    className="block w-full bg-white py-2 pl-10 pr-3 border border-transparent rounded-md leading-5 text-gray-900 placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                    placeholder="Rechercher..."
-                    type="search"
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                  />
-                </div>
+                <GlobalSearchBar role="doctor" placeholder="Rechercher un patient, un RDV..." />
               </div>
             </div>
 

@@ -14,6 +14,16 @@ from .serializers import (
     PrescriptionSerializer,
 )
 
+from rest_framework.permissions import IsAuthenticated
+from rest_framework import status
+from django.db.models import Count, Sum, Avg, Q
+from datetime import timedelta, date
+import calendar
+
+from .models import Appointment, CompteRendu, Prescription
+from .serializers import DoctorConsultationHistorySerializer   
+
+
 
 # -------- APPOINTMENTS PATIENT --------
 
@@ -466,3 +476,317 @@ class DoctorAvailabilityByIdView(APIView):
         availabilities = DoctorAvailability.objects.filter(doctor=doctor)
         return Response(DoctorAvailabilitySerializer(availabilities, many=True).data)
 
+
+
+# appointments/views.py  (ajouter ces vues à celles existantes)
+
+
+# ============================================================
+# VUE : Historique des consultations du médecin connecté
+# GET /api/appointments/doctor/history/
+# Paramètres query optionnels :
+#   - search   : texte libre (nom patient, motif, diagnostic)
+#   - status   : pending | confirmed | cancelled | completed
+#   - type     : video | presentiel | in-person
+#   - period   : 7days | 30days | 90days | 1year  (défaut : tout)
+#   - page     : numéro de page (défaut 1)
+#   - per_page : taille page (défaut 10, max 50)
+# ============================================================
+class DoctorConsultationHistoryView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        user = request.user
+
+        # Vérification rôle médecin
+        if user.role != 'doctor':
+            return Response(
+                {"detail": "Accès réservé aux médecins."},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        # Récupérer le profil Doctor
+        try:
+            doctor = user.doctor
+        except Exception:
+            return Response(
+                {"detail": "Profil médecin introuvable."},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        # ---- Queryset de base ----
+        qs = Appointment.objects.filter(doctor=doctor).select_related(
+            'patient', 'doctor', 'doctor__hospital'
+        )
+
+        # ---- Filtres ----
+        search = request.query_params.get('search', '').strip()
+        if search:
+            qs = qs.filter(
+                Q(patient__first_name__icontains=search) |
+                Q(patient__last_name__icontains=search)  |
+                Q(reason__icontains=search)
+            )
+
+        filter_status = request.query_params.get('status', '')
+        if filter_status and filter_status != 'all':
+            qs = qs.filter(status=filter_status)
+
+        filter_type = request.query_params.get('type', '')
+        if filter_type and filter_type != 'all':
+            if filter_type == 'presentiel':
+                qs = qs.filter(type__in=['presentiel', 'in-person'])
+            else:
+                qs = qs.filter(type=filter_type)
+
+        period = request.query_params.get('period', '')
+        if period and period != 'all':
+            today = date.today()
+            period_map = {
+                '7days':  today - timedelta(days=7),
+                '30days': today - timedelta(days=30),
+                '90days': today - timedelta(days=90),
+                '1year':  today - timedelta(days=365),
+            }
+            start_date = period_map.get(period)
+            if start_date:
+                qs = qs.filter(date__gte=start_date)
+
+        # ---- Tri : plus récent en premier ----
+        qs = qs.order_by('-date', '-time')
+
+        # ---- Pagination simple ----
+        try:
+            page     = max(1, int(request.query_params.get('page', 1)))
+            per_page = min(50, max(1, int(request.query_params.get('per_page', 10))))
+        except ValueError:
+            page, per_page = 1, 10
+
+        total  = qs.count()
+        start  = (page - 1) * per_page
+        end    = start + per_page
+        subset = qs[start:end]
+
+        serializer = DoctorConsultationHistorySerializer(subset, many=True)
+
+        return Response({
+            "count":    total,
+            "page":     page,
+            "per_page": per_page,
+            "pages":    (total + per_page - 1) // per_page if total > 0 else 1,
+            "results":  serializer.data,
+        })
+
+
+# ============================================================
+# VUE : Statistiques du médecin connecté
+# GET /api/appointments/doctor/stats/
+# Paramètre query optionnel :
+#   - range : semaine | mois | annee  (défaut : mois)
+# ============================================================
+class DoctorStatsView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        user = request.user
+
+        if user.role != 'doctor':
+            return Response(
+                {"detail": "Accès réservé aux médecins."},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        try:
+            doctor = user.doctor
+        except Exception:
+            return Response(
+                {"detail": "Profil médecin introuvable."},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        time_range = request.query_params.get('range', 'mois')
+        today      = date.today()
+
+        # ---- Définir la période ----
+        if time_range == 'semaine':
+            start_date = today - timedelta(days=7)
+        elif time_range == 'annee':
+            start_date = date(today.year, 1, 1)
+        else:  # mois (défaut)
+            start_date = date(today.year, today.month, 1)
+
+        # ---- Base querysets ----
+        all_rdv      = Appointment.objects.filter(doctor=doctor)
+        period_rdv   = all_rdv.filter(date__gte=start_date)
+        completed    = all_rdv.filter(status='completed')
+        period_done  = period_rdv.filter(status='completed')
+
+        # ============================================================
+        # 1. CHIFFRES CLÉS
+        # ============================================================
+
+        # Patients uniques (tous les temps)
+        total_patients = all_rdv.values('patient').distinct().count()
+
+        # Patients uniques sur la période
+        period_patients = period_rdv.values('patient').distinct().count()
+
+        # Consultations totales (tous statuts)
+        total_consultations  = all_rdv.count()
+        period_consultations = period_rdv.count()
+
+        # Revenus : fee selon type × nb consultations terminées
+        def calc_revenue(qs):
+            revenue = 0
+            for rdv in qs.select_related('doctor'):
+                if rdv.doctor:
+                    if rdv.type == 'video':
+                        revenue += rdv.doctor.fee_video
+                    else:
+                        revenue += rdv.doctor.fee_in_person
+            return revenue
+
+        total_revenus  = calc_revenue(completed)
+        period_revenus = calc_revenue(period_done)
+
+        # Taux d'occupation : (consultations terminées + confirmées) / total × 100
+        occupied = all_rdv.filter(status__in=['confirmed', 'completed']).count()
+        taux_occupation = round((occupied / total_consultations * 100) if total_consultations > 0 else 0)
+
+        # ---- Évolutions (vs période précédente) ----
+        def evolution(current, previous):
+            if previous == 0:
+                return 100.0 if current > 0 else 0.0
+            return round(((current - previous) / previous) * 100, 1)
+
+        delta_days = (today - start_date).days or 1
+        prev_start = start_date - timedelta(days=delta_days)
+        prev_rdv   = all_rdv.filter(date__gte=prev_start, date__lt=start_date)
+
+        prev_patients      = prev_rdv.values('patient').distinct().count()
+        prev_consultations = prev_rdv.count()
+        prev_revenus       = calc_revenue(prev_rdv.filter(status='completed'))
+
+        evo_patients      = evolution(period_patients,      prev_patients)
+        evo_consultations = evolution(period_consultations,  prev_consultations)
+        evo_revenus       = evolution(period_revenus,        prev_revenus)
+
+        # ============================================================
+        # 2. GRAPHIQUE : Consultations par mois (année en cours)
+        # ============================================================
+        consultations_par_mois = []
+        revenus_par_mois = []
+        mois_labels = ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Juin',
+                       'Juil', 'Août', 'Sep', 'Oct', 'Nov', 'Déc']
+
+        for m in range(1, 13):
+            rdv_mois = all_rdv.filter(date__year=today.year, date__month=m)
+            consultations_par_mois.append(rdv_mois.count())
+
+            done_mois = rdv_mois.filter(status='completed')
+            revenus_par_mois.append(calc_revenue(done_mois))
+
+        # ============================================================
+        # 3. RÉPARTITION PAR TYPE
+        # ============================================================
+        types_data = {}
+        for rdv in all_rdv.values('type').annotate(total=Count('id')):
+            label = 'Visioconférence' if rdv['type'] == 'video' else 'Présentiel'
+            types_data[label] = types_data.get(label, 0) + rdv['total']
+
+        types_labels = list(types_data.keys())
+        types_values = list(types_data.values())
+
+        # ============================================================
+        # 4. RÉPARTITION PAR STATUT
+        # ============================================================
+        statut_labels_map = {
+            'completed': 'Terminé',
+            'confirmed': 'Confirmé',
+            'pending':   'En attente',
+            'cancelled': 'Annulé',
+        }
+        statuts = {}
+        for rdv in all_rdv.values('status').annotate(total=Count('id')):
+            label = statut_labels_map.get(rdv['status'], rdv['status'])
+            statuts[label] = rdv['total']
+
+        # ============================================================
+        # 5. TRANCHES D'ÂGE DES PATIENTS
+        # ============================================================
+        age_groups = {'0-18': 0, '19-30': 0, '31-45': 0, '46-60': 0, '61+': 0}
+
+        patients_ids = all_rdv.values_list('patient_id', flat=True).distinct()
+        from django.contrib.auth import get_user_model
+        User = get_user_model()
+        patients = User.objects.filter(id__in=patients_ids)
+
+        for p in patients:
+            if p.date_of_birth:
+                age = today.year - p.date_of_birth.year - (
+                    (today.month, today.day) < (p.date_of_birth.month, p.date_of_birth.day)
+                )
+                if age <= 18:
+                    age_groups['0-18'] += 1
+                elif age <= 30:
+                    age_groups['19-30'] += 1
+                elif age <= 45:
+                    age_groups['31-45'] += 1
+                elif age <= 60:
+                    age_groups['46-60'] += 1
+                else:
+                    age_groups['61+'] += 1
+
+        # ============================================================
+        # 6. NOTE MOYENNE (reviews)
+        # ============================================================
+        try:
+            from reviews.models import Review
+            avg_rating = Review.objects.filter(
+                doctor=doctor, status='approved'
+            ).aggregate(avg=Avg('rating'))['avg']
+            avg_rating = round(avg_rating, 1) if avg_rating else None
+            nb_reviews = Review.objects.filter(doctor=doctor, status='approved').count()
+        except Exception:
+            avg_rating = None
+            nb_reviews = 0
+
+        # ============================================================
+        # 7. RÉPONSE FINALE
+        # ============================================================
+        return Response({
+            # Chiffres clés
+            "patients":              total_patients,
+            "consultations":         total_consultations,
+            "revenus":               total_revenus,
+            "taux_occupation":       taux_occupation,
+            "evolution_patients":    evo_patients,
+            "evolution_consultations": evo_consultations,
+            "evolution_revenus":     evo_revenus,
+
+            # Note
+            "avg_rating":  avg_rating,
+            "nb_reviews":  nb_reviews,
+
+            # Graphiques
+            "consultations_par_mois": {
+                "labels": mois_labels,
+                "data":   consultations_par_mois,
+            },
+            "revenus_par_mois": {
+                "labels": mois_labels,
+                "data":   revenus_par_mois,
+            },
+            "types_consultation": {
+                "labels": types_labels,
+                "data":   types_values,
+            },
+            "statuts": {
+                "labels": list(statuts.keys()),
+                "data":   list(statuts.values()),
+            },
+            "age_groups": {
+                "labels": list(age_groups.keys()),
+                "data":   list(age_groups.values()),
+            },
+        })

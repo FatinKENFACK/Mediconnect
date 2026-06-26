@@ -644,6 +644,91 @@ class AdminSubscriptionStatusView(APIView):
         return Response(SubscriptionSerializer(subscription).data)
 
 
+class ChangePasswordView(APIView):
+    """Permet à l'utilisateur connecté de changer son mot de passe."""
+    permission_classes = [permissions.IsAuthenticated]
+ 
+    def post(self, request):
+        current_password = request.data.get('current_password', '')
+        new_password     = request.data.get('new_password', '')
+        confirm_password = request.data.get('confirm_password', '')
+ 
+        if not current_password or not new_password or not confirm_password:
+            return Response({'error': 'Tous les champs sont requis.'}, status=400)
+ 
+        user = request.user
+ 
+        # Vérifie l'ancien mot de passe
+        if not user.check_password(current_password):
+            return Response({'error': 'Le mot de passe actuel est incorrect.'}, status=400)
+ 
+        # Vérifie la confirmation
+        if new_password != confirm_password:
+            return Response({'error': 'Les mots de passe ne correspondent pas.'}, status=400)
+ 
+        # Valide la robustesse du nouveau mot de passe (règles Django)
+        from django.contrib.auth.password_validation import validate_password
+        from django.core.exceptions import ValidationError
+        try:
+            validate_password(new_password, user)
+        except ValidationError as e:
+            return Response({'error': ' '.join(e.messages)}, status=400)
+ 
+        # Met à jour le mot de passe
+        user.set_password(new_password)
+        user.save()
+ 
+
+
+
+ # ============================================================
+# Ajoute cette vue dans accounts/views.py
+# ============================================================
+
+class ChangePasswordView(APIView):
+    """Permet à l'utilisateur connecté de changer son mot de passe."""
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request):
+        current_password = request.data.get('current_password', '')
+        new_password     = request.data.get('new_password', '')
+        confirm_password = request.data.get('confirm_password', '')
+
+        if not current_password or not new_password or not confirm_password:
+            return Response({'error': 'Tous les champs sont requis.'}, status=400)
+
+        user = request.user
+
+        # Vérifie l'ancien mot de passe
+        if not user.check_password(current_password):
+            return Response({'error': 'Le mot de passe actuel est incorrect.'}, status=400)
+
+        # Vérifie la confirmation
+        if new_password != confirm_password:
+            return Response({'error': 'Les mots de passe ne correspondent pas.'}, status=400)
+
+        # Valide la robustesse du nouveau mot de passe (règles Django)
+        from django.contrib.auth.password_validation import validate_password
+        from django.core.exceptions import ValidationError
+        try:
+            validate_password(new_password, user)
+        except ValidationError as e:
+            return Response({'error': ' '.join(e.messages)}, status=400)
+
+        # Met à jour le mot de passe
+        user.set_password(new_password)
+        user.save()
+
+        return Response({'success': True, 'message': 'Mot de passe mis à jour avec succès.'})
+
+
+# ============================================================
+# Dans accounts/urls.py, ajoute :
+# ============================================================
+# from .views import ChangePasswordView
+# path('change-password/', ChangePasswordView.as_view(), name='change-password'),
+
+
 
 
 

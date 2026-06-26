@@ -15,6 +15,7 @@ urlpatterns = [
     path('api/reviews/', include('reviews.urls')),
     path('api/backup/', include('backup.urls')),
     path('api/privacy/', include('privacy.urls')),
+    path('api/search/', include('search.urls')),
 
     
 ]

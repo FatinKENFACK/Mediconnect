@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
+import GlobalSearchBar from '../components/GlobalSearchBar';
 import {
   HomeIcon,
   BuildingOfficeIcon,
@@ -310,20 +311,7 @@ const AdminLayout = () => {
           <div className="flex-1 px-4 flex justify-between">
             <div className="flex-1 flex">
               <div className="w-full flex md:ml-0">
-                <div className="relative w-full max-w-md text-gray-400 focus-within:text-gray-600">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <MagnifyingGlassIcon className="h-5 w-5" />
-                  </div>
-                  <input
-                    id="search"
-                    name="search"
-                    className="block w-full bg-white py-2 pl-10 pr-3 border border-transparent rounded-md leading-5 text-gray-900 placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                    placeholder="Rechercher..."
-                    type="search"
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                  />
-                </div>
+                <GlobalSearchBar role="admin" placeholder="Rechercher hôpitaux, médecins, patients..." />
               </div>
             </div>
 

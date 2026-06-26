@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
 import { useMediaQuery } from 'react-responsive';
+import GlobalSearchBar from '../components/GlobalSearchBar';
 import {
   HomeIcon, BuildingOfficeIcon, UserGroupIcon,
   StarIcon, CreditCardIcon, CalendarIcon, FolderIcon,
@@ -41,11 +42,11 @@ const HospitalLayout = () => {
   useEffect(() => {
     api.getHospitalProfile()
       .then(data => setHospitalProfile(data))
-      .catch(() => {});
+      .catch(() => { });
 
     api.getHospitalStats()
       .then(data => setStats(data))
-      .catch(() => {});
+      .catch(() => { });
   }, []);
 
   useEffect(() => {
@@ -177,16 +178,14 @@ const HospitalLayout = () => {
             key={item.name}
             to={item.href}
             onClick={() => isMobile && setSidebarOpen(false)}
-            className={`group flex items-center px-2 py-2 text-sm font-medium rounded-md transition-all duration-200 ${
-              item.current
+            className={`group flex items-center px-2 py-2 text-sm font-medium rounded-md transition-all duration-200 ${item.current
                 ? 'bg-blue-50 text-blue-700 border-r-2 border-blue-700'
                 : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
-            } ${collapsed && !isMobile ? 'justify-center' : ''}`}
+              } ${collapsed && !isMobile ? 'justify-center' : ''}`}
           >
             <item.icon
-              className={`flex-shrink-0 h-5 w-5 ${
-                item.current ? 'text-blue-700' : 'text-gray-400 group-hover:text-gray-500'
-              }`}
+              className={`flex-shrink-0 h-5 w-5 ${item.current ? 'text-blue-700' : 'text-gray-400 group-hover:text-gray-500'
+                }`}
             />
             {!collapsed && (
               <>
@@ -263,16 +262,7 @@ const HospitalLayout = () => {
                   </button>
                 )}
                 <div className="flex-1 max-w-lg mx-4">
-                  <div className="relative">
-                    <input
-                      type="text"
-                      placeholder="Rechercher..."
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    />
-                    <MagnifyingGlassIcon className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
-                  </div>
+                  <GlobalSearchBar role="hospital" placeholder="Rechercher un médecin, un RDV..." />
                 </div>
               </div>
 

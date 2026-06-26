@@ -1,320 +1,185 @@
 import React, { useState } from 'react';
-import { 
-  BellIcon,
-  EnvelopeIcon,
-  DevicePhoneMobileIcon,
-  CheckCircleIcon
-} from '@heroicons/react/24/outline';
+import api from '../../../services/api';
+import { CheckCircleIcon, ArrowPathIcon, ExclamationTriangleIcon } from '@heroicons/react/24/outline';
 
-const NotificationsTab = () => {
-  const [notificationSettings, setNotificationSettings] = useState({
-    email: {
-      newAppointment: true,
-      appointmentReminder: true,
-      newMessage: true,
-      newsletter: false,
-      promotions: false
-    },
-    push: {
-      newAppointment: true,
-      appointmentReminder: true,
-      newMessage: true
-    },
-    sms: {
-      appointmentReminder: false,
-      importantAlerts: true
-    }
+// ============================================================
+// COMPOSANT : SecuriteTab — changement de mot de passe réel
+// ============================================================
+const SecuriteTab = () => {
+  const [formData, setFormData] = useState({
+    currentPassword: '',
+    newPassword: '',
+    confirmPassword: '',
   });
+  const [errors, setErrors]       = useState({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [successMessage, setSuccessMessage] = useState('');
+  const [apiError, setApiError]   = useState('');
 
-  const handleToggle = (type, key) => {
-    setNotificationSettings(prev => ({
-      ...prev,
-      [type]: {
-        ...prev[type],
-        [key]: !prev[type][key]
-      }
-    }));
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+    if (errors[name]) setErrors(prev => ({ ...prev, [name]: '' }));
+    if (apiError) setApiError('');
   };
 
-  const handleSave = () => {
-    // Ici, vous enverriez les paramètres au serveur
-    console.log('Paramètres de notification mis à jour :', notificationSettings);
-    
-    // Afficher un message de succès (vous pourriez utiliser un état pour gérer les messages)
-    alert('Vos préférences de notification ont été enregistrées avec succès.');
+  const validateForm = () => {
+    const newErrors = {};
+    if (!formData.currentPassword.trim()) {
+      newErrors.currentPassword = 'Le mot de passe actuel est requis';
+    }
+    if (!formData.newPassword) {
+      newErrors.newPassword = 'Le nouveau mot de passe est requis';
+    } else if (formData.newPassword.length < 8) {
+      newErrors.newPassword = 'Le mot de passe doit contenir au moins 8 caractères';
+    }
+    if (formData.newPassword !== formData.confirmPassword) {
+      newErrors.confirmPassword = 'Les mots de passe ne correspondent pas';
+    }
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
   };
 
-  const NotificationToggle = ({ id, label, description, checked, onChange }) => (
-    <div className="flex items-start">
-      <div className="flex items-center h-5">
-        <input
-          id={id}
-          name={id}
-          type="checkbox"
-          checked={checked}
-          onChange={onChange}
-          className="focus:ring-blue-500 h-4 w-4 text-blue-600 border-gray-300 rounded"
-        />
-      </div>
-      <div className="ml-3 text-sm">
-        <label htmlFor={id} className="font-medium text-gray-700">
-          {label}
-        </label>
-        {description && <p className="text-gray-500">{description}</p>}
-      </div>
-    </div>
-  );
+  const handlePasswordSubmit = async (e) => {
+    e.preventDefault();
+    setSuccessMessage('');
+    setApiError('');
+
+    if (!validateForm()) return;
+
+    setIsSubmitting(true);
+    try {
+      await api.changePassword(
+        formData.currentPassword,
+        formData.newPassword,
+        formData.confirmPassword
+      );
+      setSuccessMessage('Votre mot de passe a été mis à jour avec succès.');
+      setFormData({ currentPassword: '', newPassword: '', confirmPassword: '' });
+    } catch (err) {
+      setApiError(err.message || 'Erreur lors de la mise à jour du mot de passe.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       <div className="bg-white shadow overflow-hidden sm:rounded-lg">
         <div className="px-4 py-5 sm:px-6 border-b border-gray-200">
           <h3 className="text-lg leading-6 font-medium text-gray-900">
-            Préférences de notification
+            Changer de mot de passe
           </h3>
           <p className="mt-1 max-w-2xl text-sm text-gray-500">
-            Gérez comment vous recevez les notifications.
+            Mettez à jour le mot de passe que vous utilisez pour vous connecter à votre compte.
           </p>
         </div>
         <div className="px-4 py-5 sm:p-6">
-          <form className="space-y-8">
-            {/* Notifications par email */}
-            <div>
-              <div className="flex items-center mb-4">
-                <EnvelopeIcon className="h-5 w-5 text-gray-500 mr-2" />
-                <h4 className="text-base font-medium text-gray-900">Notifications par email</h4>
+
+          {successMessage && (
+            <div className="mb-6 rounded-md bg-green-50 p-4">
+              <div className="flex">
+                <CheckCircleIcon className="h-5 w-5 text-green-400 flex-shrink-0" />
+                <p className="ml-3 text-sm font-medium text-green-800">{successMessage}</p>
               </div>
-              <div className="space-y-4 pl-7">
-                <NotificationToggle
-                  id="email-new-appointment"
-                  label="Nouveaux rendez-vous"
-                  description="Recevoir un email lorsqu'un patient prend rendez-vous"
-                  checked={notificationSettings.email.newAppointment}
-                  onChange={() => handleToggle('email', 'newAppointment')}
+            </div>
+          )}
+
+          {apiError && (
+            <div className="mb-6 rounded-md bg-red-50 p-4">
+              <div className="flex">
+                <ExclamationTriangleIcon className="h-5 w-5 text-red-400 flex-shrink-0" />
+                <p className="ml-3 text-sm font-medium text-red-800">{apiError}</p>
+              </div>
+            </div>
+          )}
+
+          <form onSubmit={handlePasswordSubmit} className="space-y-6">
+            <div>
+              <label htmlFor="current-password" className="block text-sm font-medium text-gray-700">
+                Mot de passe actuel
+              </label>
+              <div className="mt-1">
+                <input
+                  id="current-password"
+                  name="currentPassword"
+                  type="password"
+                  autoComplete="current-password"
+                  value={formData.currentPassword}
+                  onChange={handleInputChange}
+                  className={`appearance-none block w-full px-3 py-2 border ${errors.currentPassword ? 'border-red-300' : 'border-gray-300'} rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm`}
                 />
-                <NotificationToggle
-                  id="email-reminder"
-                  label="Rappels de rendez-vous"
-                  description="Recevoir des rappels pour les rendez-vous à venir"
-                  checked={notificationSettings.email.appointmentReminder}
-                  onChange={() => handleToggle('email', 'appointmentReminder')}
-                />
-                <NotificationToggle
-                  id="email-new-message"
-                  label="Nouveaux messages"
-                  description="Recevoir un email pour chaque nouveau message reçu"
-                  checked={notificationSettings.email.newMessage}
-                  onChange={() => handleToggle('email', 'newMessage')}
-                />
-                <div className="border-t border-gray-200 pt-4">
-                  <NotificationToggle
-                    id="email-newsletter"
-                    label="Newsletter"
-                    description="Recevoir notre newsletter avec des conseils et des mises à jour"
-                    checked={notificationSettings.email.newsletter}
-                    onChange={() => handleToggle('email', 'newsletter')}
-                  />
-                </div>
-                <NotificationToggle
-                  id="email-promotions"
-                  label="Offres spéciales et promotions"
-                  description="Recevoir des offres spéciales et des promotions"
-                  checked={notificationSettings.email.promotions}
-                  onChange={() => handleToggle('email', 'promotions')}
-                />
+                {errors.currentPassword && (
+                  <p className="mt-2 text-sm text-red-600">{errors.currentPassword}</p>
+                )}
               </div>
             </div>
 
-            {/* Notifications push */}
             <div>
-              <div className="flex items-center mb-4">
-                <BellIcon className="h-5 w-5 text-gray-500 mr-2" />
-                <h4 className="text-base font-medium text-gray-900">Notifications push</h4>
-              </div>
-              <div className="space-y-4 pl-7">
-                <NotificationToggle
-                  id="push-new-appointment"
-                  label="Nouveaux rendez-vous"
-                  description="Recevoir une notification pour chaque nouveau rendez-vous"
-                  checked={notificationSettings.push.newAppointment}
-                  onChange={() => handleToggle('push', 'newAppointment')}
+              <label htmlFor="new-password" className="block text-sm font-medium text-gray-700">
+                Nouveau mot de passe
+              </label>
+              <div className="mt-1">
+                <input
+                  id="new-password"
+                  name="newPassword"
+                  type="password"
+                  autoComplete="new-password"
+                  value={formData.newPassword}
+                  onChange={handleInputChange}
+                  className={`appearance-none block w-full px-3 py-2 border ${errors.newPassword ? 'border-red-300' : 'border-gray-300'} rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm`}
                 />
-                <NotificationToggle
-                  id="push-reminder"
-                  label="Rappels de rendez-vous"
-                  description="Recevoir des rappels pour les rendez-vous à venir"
-                  checked={notificationSettings.push.appointmentReminder}
-                  onChange={() => handleToggle('push', 'appointmentReminder')}
-                />
-                <NotificationToggle
-                  id="push-new-message"
-                  label="Nouveaux messages"
-                  description="Recevoir une notification pour chaque nouveau message"
-                  checked={notificationSettings.push.newMessage}
-                  onChange={() => handleToggle('push', 'newMessage')}
-                />
+                {errors.newPassword && (
+                  <p className="mt-2 text-sm text-red-600">{errors.newPassword}</p>
+                )}
               </div>
             </div>
 
-            {/* Notifications SMS */}
             <div>
-              <div className="flex items-center mb-4">
-                <DevicePhoneMobileIcon className="h-5 w-5 text-gray-500 mr-2" />
-                <h4 className="text-base font-medium text-gray-900">Notifications SMS</h4>
-              </div>
-              <div className="space-y-4 pl-7">
-                <NotificationToggle
-                  id="sms-reminder"
-                  label="Rappels de rendez-vous"
-                  description="Recevoir des rappels SMS pour les rendez-vous à venir"
-                  checked={notificationSettings.sms.appointmentReminder}
-                  onChange={() => handleToggle('sms', 'appointmentReminder')}
+              <label htmlFor="confirm-password" className="block text-sm font-medium text-gray-700">
+                Confirmer le nouveau mot de passe
+              </label>
+              <div className="mt-1">
+                <input
+                  id="confirm-password"
+                  name="confirmPassword"
+                  type="password"
+                  autoComplete="new-password"
+                  value={formData.confirmPassword}
+                  onChange={handleInputChange}
+                  className={`appearance-none block w-full px-3 py-2 border ${errors.confirmPassword ? 'border-red-300' : 'border-gray-300'} rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm`}
                 />
-                <NotificationToggle
-                  id="sms-important"
-                  label="Alertes importantes"
-                  description="Recevoir des alertes SMS pour les notifications importantes"
-                  checked={notificationSettings.sms.importantAlerts}
-                  onChange={() => handleToggle('sms', 'importantAlerts')}
-                />
-              </div>
-              <div className="mt-3 pl-7 text-sm text-gray-500">
-                <p>Des frais de téléphonie mobile standards peuvent s'appliquer.</p>
+                {errors.confirmPassword && (
+                  <p className="mt-2 text-sm text-red-600">{errors.confirmPassword}</p>
+                )}
               </div>
             </div>
 
-            <div className="pt-5">
-              <div className="flex justify-end">
-                <button
-                  type="button"
-                  onClick={handleSave}
-                  className="ml-3 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                >
-                  <CheckCircleIcon className="-ml-1 mr-2 h-5 w-5" />
-                  Enregistrer les préférences
-                </button>
-              </div>
+            <div className="pt-2">
+              <button
+                type="submit"
+                disabled={isSubmitting}
+                className="inline-flex justify-center items-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isSubmitting ? (
+                  <>
+                    <ArrowPathIcon className="animate-spin -ml-1 mr-2 h-4 w-4" />
+                    Mise à jour...
+                  </>
+                ) : 'Mettre à jour le mot de passe'}
+              </button>
             </div>
           </form>
         </div>
       </div>
 
-      <div className="bg-white shadow overflow-hidden sm:rounded-lg">
-        <div className="px-4 py-5 sm:px-6 border-b border-gray-200">
-          <h3 className="text-lg leading-6 font-medium text-gray-900">
-            Heures silencieuses
-          </h3>
-          <p className="mt-1 max-w-2xl text-sm text-gray-500">
-            Configurez des périodes pendant lesquelles vous ne souhaitez pas recevoir de notifications.
-          </p>
-        </div>
-        <div className="px-4 py-5 sm:p-6">
-          <div className="space-y-4">
-            <div className="flex items-start">
-              <div className="flex items-center h-5">
-                <input
-                  id="quiet-hours-enabled"
-                  name="quiet-hours-enabled"
-                  type="checkbox"
-                  className="focus:ring-blue-500 h-4 w-4 text-blue-600 border-gray-300 rounded"
-                />
-              </div>
-              <div className="ml-3 text-sm">
-                <label htmlFor="quiet-hours-enabled" className="font-medium text-gray-700">
-                  Activer les heures silencieuses
-                </label>
-                <p className="text-gray-500">Les notifications seront désactivées pendant les heures que vous spécifiez.</p>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 gap-y-6 gap-x-4 sm:grid-cols-6 pl-7">
-              <div className="sm:col-span-3">
-                <label htmlFor="quiet-hours-start" className="block text-sm font-medium text-gray-700">
-                  De
-                </label>
-                <div className="mt-1">
-                  <select
-                    id="quiet-hours-start"
-                    name="quiet-hours-start"
-                    className="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md"
-                    disabled
-                  >
-                    {Array.from({ length: 24 }, (_, i) => {
-                      const hour = i % 12 || 12;
-                      const ampm = i < 12 ? 'AM' : 'PM';
-                      return (
-                        <option key={i} value={i}>
-                          {`${hour}:00 ${ampm}`}
-                        </option>
-                      );
-                    })}
-                  </select>
-                </div>
-              </div>
-
-              <div className="sm:col-span-3">
-                <label htmlFor="quiet-hours-end" className="block text-sm font-medium text-gray-700">
-                  À
-                </label>
-                <div className="mt-1">
-                  <select
-                    id="quiet-hours-end"
-                    name="quiet-hours-end"
-                    className="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md"
-                    disabled
-                  >
-                    {Array.from({ length: 24 }, (_, i) => {
-                      const hour = i % 12 || 12;
-                      const ampm = i < 12 ? 'AM' : 'PM';
-                      return (
-                        <option key={i} value={i}>
-                          {`${hour}:00 ${ampm}`}
-                        </option>
-                      );
-                    })}
-                  </select>
-                </div>
-              </div>
-
-              <div className="sm:col-span-6">
-                <fieldset>
-                  <legend className="block text-sm font-medium text-gray-700 mb-1">
-                    Jours de la semaine
-                  </legend>
-                  <div className="grid grid-cols-7 gap-2">
-                    {['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'].map((day, index) => (
-                      <div key={day} className="flex items-center">
-                        <input
-                          id={`day-${index}`}
-                          name="days"
-                          type="checkbox"
-                          className="focus:ring-blue-500 h-4 w-4 text-blue-600 border-gray-300 rounded"
-                          disabled
-                        />
-                        <label htmlFor={`day-${index}`} className="ml-2 block text-sm text-gray-700">
-                          {day}
-                        </label>
-                      </div>
-                    ))}
-                  </div>
-                </fieldset>
-              </div>
-            </div>
-          </div>
-
-          <div className="mt-6 pt-4 border-t border-gray-200 flex justify-end">
-            <button
-              type="button"
-              className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
-              disabled
-            >
-              Enregistrer les heures silencieuses
-            </button>
-          </div>
-        </div>
+      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+        <p className="text-sm text-blue-800">
+          <span className="font-medium">ℹ️ Note :</span> L'authentification à deux facteurs et la gestion des sessions actives seront disponibles dans une prochaine mise à jour.
+        </p>
       </div>
     </div>
   );
 };
 
-export default NotificationsTab;
+export default SecuriteTab;

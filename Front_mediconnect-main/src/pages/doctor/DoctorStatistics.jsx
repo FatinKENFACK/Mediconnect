@@ -1,361 +1,496 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  ChartBarIcon,
-  ChartPieIcon,
-  TrendingUpIcon,
-  UserGroupIcon,
-  CalendarIcon,
-  CurrencyDollarIcon,
-  StarIcon,
-  ClockIcon,
-  DocumentTextIcon,
-  VideoCameraIcon,
-  FunnelIcon,
-  ArrowDownIcon,
-  ArrowUpIcon,
-  InformationCircleIcon
+import {
+  UserGroupIcon, CalendarIcon, CurrencyDollarIcon,
+  StarIcon, ClockIcon, VideoCameraIcon,
+  ArrowUpIcon, ArrowDownIcon, ArrowPathIcon,
+  InformationCircleIcon, ArrowDownTrayIcon, TableCellsIcon,
+  ExclamationTriangleIcon,
 } from '@heroicons/react/24/outline';
+import { Line, Bar, Pie, Doughnut } from 'react-chartjs-2';
+import {
+  Chart as ChartJS, CategoryScale, LinearScale, BarElement,
+  Title, Tooltip, Legend, ArcElement, PointElement, LineElement,
+} from 'chart.js';
+import api from '../../services/api';
 
+ChartJS.register(
+  CategoryScale, LinearScale, BarElement,
+  PointElement, LineElement,
+  ArcElement, Title, Tooltip, Legend,
+);
+
+// ============================================================
+// HELPERS
+// ============================================================
+const formatNumber = (num) =>
+  (num ?? 0).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+
+const Evolution = ({ value }) => {
+  if (value === null || value === undefined) return null;
+  const pos = value >= 0;
+  return (
+    <span className={`inline-flex items-center text-sm font-medium ${pos ? 'text-green-600' : 'text-red-600'}`}>
+      {pos ? <ArrowUpIcon className="h-3.5 w-3.5 mr-0.5" /> : <ArrowDownIcon className="h-3.5 w-3.5 mr-0.5" />}
+      {Math.abs(value)}%
+    </span>
+  );
+};
+
+// Palettes graphiques
+const PIE_BG     = ['rgba(59,130,246,.7)','rgba(16,185,129,.7)','rgba(245,158,11,.7)','rgba(99,102,241,.7)','rgba(236,72,153,.7)'];
+const PIE_BORDER = ['rgb(59,130,246)','rgb(16,185,129)','rgb(245,158,11)','rgb(99,102,241)','rgb(236,72,153)'];
+
+// ============================================================
+// SKELETONS
+// ============================================================
+const SkeletonCard = () => (
+  <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 animate-pulse">
+    <div className="flex items-center justify-between mb-4">
+      <div className="h-12 w-12 bg-gray-200 rounded-lg"></div>
+      <div className="h-4 w-12 bg-gray-100 rounded"></div>
+    </div>
+    <div className="h-7 bg-gray-200 rounded w-24 mb-1"></div>
+    <div className="h-4 bg-gray-100 rounded w-20"></div>
+  </div>
+);
+
+const SkeletonChart = ({ h = 'h-80' }) => (
+  <div className={`${h} bg-gray-100 rounded-lg animate-pulse flex items-center justify-center`}>
+    <p className="text-gray-400 text-sm">Chargement du graphique…</p>
+  </div>
+);
+
+// ============================================================
+// COMPOSANT PRINCIPAL
+// ============================================================
 export default function DoctorStatistics() {
-  const [selectedPeriod, setSelectedPeriod] = useState('month');
-  const [selectedMetric, setSelectedMetric] = useState('revenue');
-  const [statsData, setStatsData] = useState({
-    revenue: {
-      current: 850000,
-      previous: 720000,
-      growth: 18.1,
-      data: [
-        { month: 'Jan', value: 650000 },
-        { month: 'Fév', value: 720000 },
-        { month: 'Mar', value: 680000 },
-        { month: 'Avr', value: 750000 },
-        { month: 'Mai', value: 820000 },
-        { month: 'Juin', value: 850000 }
-      ]
-    },
-    appointments: {
-      current: 124,
-      previous: 108,
-      growth: 14.8,
-      data: [
-        { month: 'Jan', value: 98 },
-        { month: 'Fév', value: 108 },
-        { month: 'Mar', value: 95 },
-        { month: 'Avr', value: 112 },
-        { month: 'Mai', value: 118 },
-        { month: 'Juin', value: 124 }
-      ]
-    },
-    patients: {
-      current: 156,
-      previous: 142,
-      growth: 9.9,
-      data: [
-        { month: 'Jan', value: 132 },
-        { month: 'Fév', value: 142 },
-        { month: 'Mar', value: 138 },
-        { month: 'Avr', value: 145 },
-        { month: 'Mai', value: 151 },
-        { month: 'Juin', value: 156 }
-      ]
-    },
-    satisfaction: {
-      current: 4.8,
-      previous: 4.6,
-      growth: 4.3,
-      data: [
-        { month: 'Jan', value: 4.5 },
-        { month: 'Fév', value: 4.6 },
-        { month: 'Mar', value: 4.4 },
-        { month: 'Avr', value: 4.7 },
-        { month: 'Mai', value: 4.6 },
-        { month: 'Juin', value: 4.8 }
-      ]
+  const [timeRange,  setTimeRange]  = useState('mois');
+  const [activeTab,  setActiveTab]  = useState('general');
+  const [loading,    setLoading]    = useState(true);
+  const [error,      setError]      = useState(null);
+  const [data,       setData]       = useState(null);
+
+  // ============================================================
+  // CHARGEMENT
+  // ============================================================
+  const loadStats = async (range) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const result = await api.getDoctorStats(range);
+      setData(result);
+    } catch (err) {
+      console.error('Erreur stats:', err);
+      setError('Impossible de charger les statistiques.');
+    } finally {
+      setLoading(false);
     }
+  };
+
+  useEffect(() => { loadStats(timeRange); }, [timeRange]);
+
+  // ============================================================
+  // DONNÉES GRAPHIQUES (construites depuis la réponse API)
+  // ============================================================
+  const consultationsChartData = data ? {
+    labels: data.consultations_par_mois.labels,
+    datasets: [{
+      label: 'Consultations',
+      data:  data.consultations_par_mois.data,
+      borderColor: 'rgb(59,130,246)',
+      backgroundColor: 'rgba(59,130,246,0.1)',
+      tension: 0.3, fill: true,
+    }],
+  } : null;
+
+  const revenusChartData = data ? {
+    labels: data.revenus_par_mois.labels,
+    datasets: [{
+      label: 'Revenus (XAF)',
+      data:  data.revenus_par_mois.data,
+      backgroundColor: 'rgba(16,185,129,0.7)',
+      borderColor: 'rgb(16,185,129)',
+      borderWidth: 1,
+    }],
+  } : null;
+
+  const typesChartData = data && data.types_consultation.labels.length > 0 ? {
+    labels: data.types_consultation.labels,
+    datasets: [{
+      data: data.types_consultation.data,
+      backgroundColor: PIE_BG,
+      borderColor: PIE_BORDER,
+      borderWidth: 1,
+    }],
+  } : null;
+
+  const ageChartData = data ? {
+    labels: data.age_groups.labels,
+    datasets: [{
+      label: 'Patients',
+      data:  data.age_groups.data,
+      backgroundColor: PIE_BG,
+      borderColor: PIE_BORDER,
+      borderWidth: 1,
+    }],
+  } : null;
+
+  const statutsChartData = data && data.statuts.labels.length > 0 ? {
+    labels: data.statuts.labels,
+    datasets: [{
+      label: 'Rendez-vous',
+      data:  data.statuts.data,
+      backgroundColor: [
+        'rgba(16,185,129,.7)', 'rgba(59,130,246,.7)',
+        'rgba(245,158,11,.7)', 'rgba(239,68,68,.7)',
+      ],
+      borderColor: [
+        'rgb(16,185,129)', 'rgb(59,130,246)',
+        'rgb(245,158,11)', 'rgb(239,68,68)',
+      ],
+      borderWidth: 1,
+    }],
+  } : null;
+
+  // Options graphiques
+  const lineOpts = {
+    responsive: true,
+    plugins: { legend: { position: 'top' }, title: { display: true, text: 'Consultations par mois' } },
+    scales: { y: { beginAtZero: true } },
+  };
+  const barOpts = (text) => ({
+    responsive: true,
+    plugins: { legend: { position: 'top' }, title: { display: true, text } },
+    scales: { y: { beginAtZero: true } },
+  });
+  const pieOpts = (text) => ({
+    responsive: true,
+    plugins: { legend: { position: 'bottom' }, title: { display: true, text } },
   });
 
-  const [specialtyStats, setSpecialtyStats] = useState([
-    { name: 'Cardiologie', appointments: 45, revenue: 320000, patients: 38, growth: 12.5 },
-    { name: 'Médecine générale', appointments: 38, revenue: 228000, patients: 42, growth: 8.3 },
-    { name: 'Consultations vidéo', appointments: 28, revenue: 168000, patients: 35, growth: 22.1 },
-    { name: 'Urgences', appointments: 13, revenue: 134000, patients: 18, growth: -5.2 }
-  ]);
+  // ============================================================
+  // RENDER : carte stat individuelle
+  // ============================================================
+  const StatCard = ({ title, value, evolution, icon: Icon, bgColor, link }) => (
+    <div className="bg-white overflow-hidden shadow rounded-lg">
+      <div className="p-5">
+        <div className="flex items-center">
+          <div className={`flex-shrink-0 ${bgColor} rounded-md p-3`}>
+            <Icon className="h-6 w-6 text-white" />
+          </div>
+          <div className="ml-5 w-0 flex-1">
+            <dl>
+              <dt className="text-sm font-medium text-gray-500 truncate">{title}</dt>
+              <dd className="flex items-baseline gap-2 mt-0.5">
+                <span className="text-2xl font-semibold text-gray-900">{value}</span>
+                <Evolution value={evolution} />
+              </dd>
+            </dl>
+          </div>
+        </div>
+      </div>
+      {link && (
+        <div className="bg-gray-50 px-5 py-3 border-t border-gray-100">
+          <p className="text-sm font-medium text-blue-600">{link}</p>
+        </div>
+      )}
+    </div>
+  );
 
-  const [patientDemographics, setPatientDemographics] = useState([
-    { age: '18-25', count: 12, percentage: 7.7 },
-    { age: '26-35', count: 28, percentage: 17.9 },
-    { age: '36-45', count: 35, percentage: 22.4 },
-    { age: '46-55', count: 42, percentage: 26.9 },
-    { age: '56-65', count: 28, percentage: 17.9 },
-    { age: '65+', count: 11, percentage: 7.1 }
-  ]);
-
-  const [consultationTypes, setConsultationTypes] = useState([
-    { type: 'Présentiel', count: 89, percentage: 71.8, averageDuration: 45, revenue: 534000 },
-    { type: 'Visioconférence', count: 35, percentage: 28.2, averageDuration: 30, revenue: 316000 }
-  ]);
-
-  const periods = [
-    { value: 'week', label: 'Semaine' },
-    { value: 'month', label: 'Mois' },
-    { value: 'quarter', label: 'Trimestre' },
-    { value: 'year', label: 'Année' }
-  ];
-
-  const metrics = [
-    { value: 'revenue', label: 'Revenus', icon: CurrencyDollarIcon },
-    { value: 'appointments', label: 'Rendez-vous', icon: CalendarIcon },
-    { value: 'patients', label: 'Patients', icon: UserGroupIcon },
-    { value: 'satisfaction', label: 'Satisfaction', icon: StarIcon }
-  ];
-
-  const currentMetricData = statsData[selectedMetric];
-  const MetricIcon = metrics.find(m => m.value === selectedMetric)?.icon || ChartBarIcon;
-
-  const calculateTotalRevenue = () => {
-    return specialtyStats.reduce((sum, specialty) => sum + specialty.revenue, 0);
-  };
-
-  const calculateAverageRating = () => {
-    return currentMetricData.current;
-  };
-
+  // ============================================================
+  // RENDER PRINCIPAL
+  // ============================================================
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">Statistiques</h1>
-          <p className="text-gray-600 mt-2">Analysez vos performances et suivez votre activité</p>
-        </div>
+    <div className="space-y-6">
 
-        {/* Period and Metric Selection */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-8">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Période</label>
-                <select
-                  value={selectedPeriod}
-                  onChange={(e) => setSelectedPeriod(e.target.value)}
-                  className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+      {/* ====== HEADER ====== */}
+      <div className="pb-5 border-b border-gray-200">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">Tableau de bord statistique</h1>
+            <p className="mt-1 text-sm text-gray-500">
+              Visualisez et analysez les performances de votre activité médicale
+            </p>
+          </div>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => loadStats(timeRange)}
+              disabled={loading}
+              className="inline-flex items-center gap-1.5 px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50"
+            >
+              <ArrowPathIcon className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+              Actualiser
+            </button>
+            <div className="flex rounded-md shadow-sm border border-gray-300 overflow-hidden">
+              {[
+                { key: 'semaine', label: 'Semaine' },
+                { key: 'mois',    label: 'Mois' },
+                { key: 'annee',   label: 'Année' },
+              ].map(({ key, label }, i, arr) => (
+                <button
+                  key={key}
+                  onClick={() => setTimeRange(key)}
+                  className={`px-4 py-2 text-sm font-medium transition-colors ${
+                    timeRange === key ? 'bg-blue-600 text-white' : 'bg-white text-gray-700 hover:bg-gray-50'
+                  } ${i < arr.length - 1 ? 'border-r border-gray-300' : ''}`}
                 >
-                  {periods.map(period => (
-                    <option key={period.value} value={period.value}>{period.label}</option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Métrique</label>
-                <select
-                  value={selectedMetric}
-                  onChange={(e) => setSelectedMetric(e.target.value)}
-                  className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                >
-                  {metrics.map(metric => (
-                    <option key={metric.value} value={metric.value}>{metric.label}</option>
-                  ))}
-                </select>
-              </div>
-            </div>
-            <div className="flex items-center space-x-2">
-              <button className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center">
-                <ArrowDownIcon className="h-4 w-4 mr-2" />
-                Exporter
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {/* Main Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          {metrics.map((metric) => {
-            const data = statsData[metric.value];
-            const Icon = metric.icon;
-            return (
-              <div key={metric.value} className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                <div className="flex items-center justify-between mb-4">
-                  <div className="p-3 bg-blue-100 rounded-lg">
-                    <Icon className="h-6 w-6 text-blue-600" />
-                  </div>
-                  <div className={`flex items-center text-sm ${
-                    data.growth > 0 ? 'text-green-600' : 'text-red-600'
-                  }`}>
-                    {data.growth > 0 ? (
-                      <ArrowUpIcon className="h-4 w-4 mr-1" />
-                    ) : (
-                      <ArrowDownIcon className="h-4 w-4 mr-1" />
-                    )}
-                    {Math.abs(data.growth)}%
-                  </div>
-                </div>
-                <p className="text-2xl font-bold text-gray-900">
-                  {metric.value === 'revenue' ? `${(data.current / 1000).toFixed(0)}k XAF` : data.current}
-                </p>
-                <p className="text-sm text-gray-600">{metric.label}</p>
-              </div>
-            );
-          })}
-        </div>
-
-        {/* Chart Section */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
-          {/* Main Chart */}
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-lg font-semibold text-gray-900">
-                {metrics.find(m => m.value === selectedMetric)?.label} - Tendance
-              </h2>
-              <MetricIcon className="h-5 w-5 text-gray-400" />
-            </div>
-            <div className="space-y-4">
-              {currentMetricData.data.map((item, index) => (
-                <div key={index} className="flex items-center">
-                  <div className="w-12 text-sm font-medium text-gray-600">{item.month}</div>
-                  <div className="flex-1 mx-4">
-                    <div className="bg-gray-200 rounded-full h-6 relative">
-                      <div 
-                        className="bg-blue-500 h-6 rounded-full flex items-center justify-end pr-2"
-                        style={{ 
-                          width: `${(item.value / Math.max(...currentMetricData.data.map(d => d.value))) * 100}%` 
-                        }}
-                      >
-                        <span className="text-xs text-white font-medium">
-                          {selectedMetric === 'revenue' ? `${(item.value / 1000).toFixed(0)}k` : item.value}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
+                  {label}
+                </button>
               ))}
-            </div>
-          </div>
-
-          {/* Specialty Performance */}
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-6">Performance par spécialité</h2>
-            <div className="space-y-4">
-              {specialtyStats.map((specialty, index) => (
-                <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                  <div>
-                    <p className="font-medium text-gray-900">{specialty.name}</p>
-                    <p className="text-sm text-gray-600">{specialty.appointments} rendez-vous</p>
-                  </div>
-                  <div className="text-right">
-                    <p className="font-medium text-gray-900">{(specialty.revenue / 1000).toFixed(0)}k XAF</p>
-                    <p className={`text-sm ${specialty.growth > 0 ? 'text-green-600' : 'text-red-600'}`}>
-                      {specialty.growth > 0 ? '+' : ''}{specialty.growth}%
-                    </p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        {/* Demographics and Consultation Types */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
-          {/* Patient Demographics */}
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-6">Démographie des patients</h2>
-            <div className="space-y-3">
-              {patientDemographics.map((demographic, index) => (
-                <div key={index} className="flex items-center">
-                  <div className="w-16 text-sm font-medium text-gray-600">{demographic.age}</div>
-                  <div className="flex-1 mx-4">
-                    <div className="bg-gray-200 rounded-full h-4 relative">
-                      <div 
-                        className="bg-green-500 h-4 rounded-full"
-                        style={{ width: `${demographic.percentage}%` }}
-                      ></div>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-sm font-medium text-gray-900">{demographic.count}</p>
-                    <p className="text-xs text-gray-500">{demographic.percentage}%</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Consultation Types */}
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-6">Types de consultations</h2>
-            <div className="space-y-4">
-              {consultationTypes.map((type, index) => (
-                <div key={index} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-                  <div className="flex items-center">
-                    <div className={`p-2 rounded-lg mr-3 ${
-                      type.type === 'Présentiel' ? 'bg-blue-100' : 'bg-green-100'
-                    }`}>
-                      {type.type === 'Présentiel' ? (
-                        <UserGroupIcon className="h-5 w-5 text-blue-600" />
-                      ) : (
-                        <VideoCameraIcon className="h-5 w-5 text-green-600" />
-                      )}
-                    </div>
-                    <div>
-                      <p className="font-medium text-gray-900">{type.type}</p>
-                      <p className="text-sm text-gray-600">{type.count} consultations</p>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <p className="font-medium text-gray-900">{type.percentage}%</p>
-                    <p className="text-sm text-gray-600">{type.averageDuration}min en moyenne</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        {/* Summary Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-            <div className="flex items-center mb-4">
-              <CurrencyDollarIcon className="h-5 w-5 text-green-600 mr-2" />
-              <h3 className="font-medium text-gray-900">Revenu total</h3>
-            </div>
-            <p className="text-2xl font-bold text-gray-900">{(calculateTotalRevenue() / 1000).toFixed(0)}k XAF</p>
-            <p className="text-sm text-gray-600">Ce mois</p>
-          </div>
-
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-            <div className="flex items-center mb-4">
-              <ClockIcon className="h-5 w-5 text-blue-600 mr-2" />
-              <h3 className="font-medium text-gray-900">Temps moyen</h3>
-            </div>
-            <p className="text-2xl font-bold text-gray-900">42min</p>
-            <p className="text-sm text-gray-600">Par consultation</p>
-          </div>
-
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-            <div className="flex items-center mb-4">
-              <StarIcon className="h-5 w-5 text-yellow-600 mr-2" />
-              <h3 className="font-medium text-gray-900">Note moyenne</h3>
-            </div>
-            <p className="text-2xl font-bold text-gray-900">{calculateAverageRating()}/5</p>
-            <p className="text-sm text-gray-600">Basée sur 45 avis</p>
-          </div>
-        </div>
-
-        {/* Info Banner */}
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-          <div className="flex items-start">
-            <InformationCircleIcon className="h-5 w-5 text-blue-600 mt-0.5 mr-3" />
-            <div>
-              <h3 className="font-medium text-blue-900 mb-1">Analyse des performances</h3>
-              <ul className="text-sm text-blue-800 space-y-1">
-                <li>Les visioconférences ont une croissance de 22.1% ce mois-ci</li>
-                <li>La cardiologie représente 37.6% de vos revenus</li>
-                <li>La tranche d'âge 46-55 ans constitue votre principal segment de patients</li>
-                <li>Votre note de satisfaction a augmenté de 4.3% ce trimestre</li>
-              </ul>
             </div>
           </div>
         </div>
       </div>
+
+      {/* ====== ERREUR ====== */}
+      {error && (
+        <div className="flex items-center gap-3 p-4 bg-red-50 border border-red-200 rounded-xl">
+          <ExclamationTriangleIcon className="h-5 w-5 text-red-500 flex-shrink-0" />
+          <p className="text-sm text-red-700">{error}</p>
+          <button onClick={() => loadStats(timeRange)} className="ml-auto text-sm text-red-700 underline">
+            Réessayer
+          </button>
+        </div>
+      )}
+
+      {/* ====== STAT CARDS ====== */}
+      <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
+        {loading ? [1,2,3,4].map(i => <SkeletonCard key={i} />) : data && (
+          <>
+            <StatCard
+              title="Patients actifs"
+              value={formatNumber(data.patients)}
+              evolution={data.evolution_patients}
+              icon={UserGroupIcon}
+              bgColor="bg-blue-500"
+              link="Voir la liste des patients"
+            />
+            <StatCard
+              title="Consultations"
+              value={formatNumber(data.consultations)}
+              evolution={data.evolution_consultations}
+              icon={ClockIcon}
+              bgColor="bg-green-500"
+              link="Voir le calendrier"
+            />
+            <StatCard
+              title={`Revenus ${timeRange === 'mois' ? 'mensuels' : timeRange === 'semaine' ? 'hebdo' : 'annuels'}`}
+              value={`${formatNumber(data.revenus)} XAF`}
+              evolution={data.evolution_revenus}
+              icon={CurrencyDollarIcon}
+              bgColor="bg-yellow-500"
+              link="Voir les détails financiers"
+            />
+            <StatCard
+              title="Taux d'occupation"
+              value={`${data.taux_occupation}%`}
+              icon={CalendarIcon}
+              bgColor="bg-purple-500"
+              link="Voir la disponibilité"
+            />
+          </>
+        )}
+      </div>
+
+      {/* ====== NOTE MOYENNE ====== */}
+      {!loading && data?.avg_rating && (
+        <div className="flex items-center gap-3 p-4 bg-amber-50 border border-amber-200 rounded-xl">
+          <StarIcon className="h-5 w-5 text-amber-500 flex-shrink-0" />
+          <p className="text-sm font-medium text-amber-800">
+            Note moyenne :{' '}
+            <span className="text-lg font-bold">{data.avg_rating} / 5</span>
+            <span className="text-amber-600 font-normal ml-2">
+              ({data.nb_reviews} avis approuvé{data.nb_reviews > 1 ? 's' : ''})
+            </span>
+          </p>
+        </div>
+      )}
+
+      {/* ====== ONGLETS ====== */}
+      <div className="border-b border-gray-200">
+        <nav className="-mb-px flex space-x-8">
+          {[
+            { id: 'general',       label: "Vue d'ensemble" },
+            { id: 'patients',      label: 'Patients' },
+            { id: 'consultations', label: 'Consultations' },
+            { id: 'finances',      label: 'Finances' },
+          ].map(tab => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
+                activeTab === tab.id
+                  ? 'border-blue-500 text-blue-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </nav>
+      </div>
+
+      {/* ====== CONTENU ONGLETS ====== */}
+      <div className="bg-white shadow rounded-lg p-6">
+
+        {/* Vue d'ensemble */}
+        {activeTab === 'general' && (
+          <div className="space-y-8">
+            <div>
+              <h3 className="text-lg font-medium text-gray-900 mb-4">Activité par mois</h3>
+              {loading ? <SkeletonChart /> :
+               consultationsChartData
+                ? <div className="h-80"><Line data={consultationsChartData} options={lineOpts} /></div>
+                : <p className="text-sm text-gray-500 text-center py-16">Aucune donnée disponible</p>
+              }
+            </div>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              <div>
+                <h3 className="text-lg font-medium text-gray-900 mb-4">Types de consultation</h3>
+                {loading ? <SkeletonChart h="h-72" /> :
+                 typesChartData
+                  ? <div className="h-72"><Pie data={typesChartData} options={pieOpts('Types de consultation')} /></div>
+                  : <p className="text-sm text-gray-500 text-center py-12">Aucune donnée</p>
+                }
+              </div>
+              <div>
+                <h3 className="text-lg font-medium text-gray-900 mb-4">Tranches d'âge des patients</h3>
+                {loading ? <SkeletonChart h="h-72" /> :
+                 ageChartData
+                  ? <div className="h-72"><Doughnut data={ageChartData} options={pieOpts("Tranches d'âge")} /></div>
+                  : <p className="text-sm text-gray-500 text-center py-12">Aucune donnée</p>
+                }
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Patients */}
+        {activeTab === 'patients' && (
+          <div>
+            <h3 className="text-lg font-medium text-gray-900 mb-4">Répartition par tranche d'âge</h3>
+            {loading ? <SkeletonChart h="h-96" /> :
+             ageChartData
+              ? <div className="h-96"><Bar data={ageChartData} options={barOpts("Patients par tranche d'âge")} /></div>
+              : <p className="text-sm text-gray-500 text-center py-20">Aucune donnée disponible</p>
+            }
+          </div>
+        )}
+
+        {/* Consultations */}
+        {activeTab === 'consultations' && (
+          <div className="space-y-8">
+            <div>
+              <h3 className="text-lg font-medium text-gray-900 mb-4">Évolution mensuelle</h3>
+              {loading ? <SkeletonChart /> :
+               consultationsChartData
+                ? <div className="h-80"><Line data={consultationsChartData} options={lineOpts} /></div>
+                : <p className="text-sm text-gray-500 text-center py-16">Aucune donnée disponible</p>
+              }
+            </div>
+            <div>
+              <h3 className="text-lg font-medium text-gray-900 mb-4">Répartition par statut</h3>
+              {loading ? <SkeletonChart h="h-64" /> :
+               statutsChartData
+                ? <div className="h-64"><Bar data={statutsChartData} options={barOpts('Statuts des rendez-vous')} /></div>
+                : <p className="text-sm text-gray-500 text-center py-12">Aucune donnée disponible</p>
+              }
+            </div>
+          </div>
+        )}
+
+        {/* Finances */}
+        {activeTab === 'finances' && (
+          <div>
+            <h3 className="text-lg font-medium text-gray-900 mb-4">Revenus mensuels (XAF)</h3>
+            {loading ? <SkeletonChart h="h-96" /> :
+             revenusChartData
+              ? <div className="h-96"><Bar data={revenusChartData} options={barOpts('Revenus par mois (XAF)')} /></div>
+              : <p className="text-sm text-gray-500 text-center py-20">Aucune donnée disponible</p>
+            }
+          </div>
+        )}
+      </div>
+
+      {/* ====== RÉSUMÉ ====== */}
+      {!loading && data && (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <div className="flex items-center mb-3">
+              <CurrencyDollarIcon className="h-5 w-5 text-green-600 mr-2" />
+              <h3 className="font-medium text-gray-900">Revenu total</h3>
+            </div>
+            <p className="text-2xl font-bold text-gray-900">{formatNumber(data.revenus)} XAF</p>
+            <p className="text-sm text-gray-500 mt-1">
+              {timeRange === 'mois' ? 'Ce mois' : timeRange === 'semaine' ? 'Cette semaine' : 'Cette année'}
+            </p>
+          </div>
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <div className="flex items-center mb-3">
+              <UserGroupIcon className="h-5 w-5 text-blue-600 mr-2" />
+              <h3 className="font-medium text-gray-900">Total patients</h3>
+            </div>
+            <p className="text-2xl font-bold text-gray-900">{formatNumber(data.patients)}</p>
+            <p className="text-sm text-gray-500 mt-1">Patients uniques suivis</p>
+          </div>
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <div className="flex items-center mb-3">
+              <StarIcon className="h-5 w-5 text-yellow-500 mr-2" />
+              <h3 className="font-medium text-gray-900">Note moyenne</h3>
+            </div>
+            <p className="text-2xl font-bold text-gray-900">
+              {data.avg_rating ? `${data.avg_rating} / 5` : '—'}
+            </p>
+            <p className="text-sm text-gray-500 mt-1">
+              {data.nb_reviews > 0 ? `${data.nb_reviews} avis approuvé${data.nb_reviews > 1 ? 's' : ''}` : 'Aucun avis'}
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* ====== INSIGHTS ====== */}
+      {!loading && data && (
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+          <div className="flex items-start gap-3">
+            <InformationCircleIcon className="h-5 w-5 text-blue-600 mt-0.5 flex-shrink-0" />
+            <div>
+              <h3 className="font-medium text-blue-900 mb-2">Analyse de votre activité</h3>
+              <ul className="text-sm text-blue-800 space-y-1">
+                <li>• {data.consultations} consultation{data.consultations > 1 ? 's' : ''} enregistrée{data.consultations > 1 ? 's' : ''} au total</li>
+                <li>• {data.patients} patient{data.patients > 1 ? 's' : ''} unique{data.patients > 1 ? 's' : ''} suivi{data.patients > 1 ? 's' : ''}</li>
+                <li>• Taux d'occupation de {data.taux_occupation}%</li>
+                {data.avg_rating && <li>• Note de satisfaction : {data.avg_rating}/5 ({data.nb_reviews} avis)</li>}
+                {data.evolution_revenus > 0 && (
+                  <li>• Vos revenus ont augmenté de {data.evolution_revenus}% par rapport à la période précédente</li>
+                )}
+              </ul>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ====== EXPORT ====== */}
+      <div className="bg-white shadow rounded-lg p-6">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <h3 className="text-lg font-medium text-gray-900">Exporter les données</h3>
+            <p className="mt-1 text-sm text-gray-500">
+              Téléchargez vos données au format Excel ou PDF.
+            </p>
+          </div>
+          <div className="flex gap-3">
+            <button className="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+              <TableCellsIcon className="-ml-1 mr-2 h-5 w-5 text-gray-500" />
+              Excel
+            </button>
+            <button className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700">
+              <ArrowDownTrayIcon className="-ml-1 mr-2 h-5 w-5" />
+              PDF
+            </button>
+          </div>
+        </div>
+      </div>
+
     </div>
   );
 }

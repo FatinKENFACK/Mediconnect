@@ -807,9 +807,9 @@ const downloadBackup = async (filename) => {
   });
   if (!response.ok) throw new Error('Erreur lors du téléchargement.');
   const blob = await response.blob();
-  const url  = URL.createObjectURL(blob);
-  const a    = document.createElement('a');
-  a.href     = url;
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
   a.download = filename;
   a.click();
   URL.revokeObjectURL(url);
@@ -855,6 +855,51 @@ const updatePrivacySettings = async (data) => {
     body: JSON.stringify(data),
   });
 };
+
+const getDoctorConsultationHistory = async (filters = {}) => {
+  const query = new URLSearchParams(filters).toString();
+  return await request(`/appointments/doctor/history/${query ? '?' + query : ''}`);
+};
+
+// Statistiques du médecin connecté
+// GET /api/appointments/doctor/stats-full/
+// Paramètre optionnel : range (semaine | mois | annee)
+const getDoctorStats = async (range = 'mois') => {
+  return await request(`/appointments/doctor/stats-full/?range=${range}`);
+};
+
+
+const searchPatient = async (q) => {
+  return await request(`/search/patient/?q=${encodeURIComponent(q)}`);
+};
+
+const searchDoctor = async (q) => {
+  return await request(`/search/doctor/?q=${encodeURIComponent(q)}`);
+};
+
+const searchHospital = async (q) => {
+  return await request(`/search/hospital/?q=${encodeURIComponent(q)}`);
+};
+
+const searchAdmin = async (q) => {
+  return await request(`/search/admin/?q=${encodeURIComponent(q)}`);
+};
+
+const changePassword = async (currentPassword, newPassword, confirmPassword) => {
+  return await request('/accounts/change-password/', {
+    method: 'POST',
+    body: JSON.stringify({
+      current_password: currentPassword,
+      new_password:     newPassword,
+      confirm_password: confirmPassword,
+    }),
+  });
+};
+
+
+
+
+
 // ================= EXPORT =================
 
 const api = {
@@ -974,6 +1019,16 @@ const api = {
   deleteDataRequest,
   getPrivacySettings,
   updatePrivacySettings,
+
+  getDoctorConsultationHistory,
+  getDoctorStats,
+
+  searchPatient,
+  searchDoctor,
+  searchHospital,
+  searchAdmin,
+
+  changePassword,
 };
 
 export default api;

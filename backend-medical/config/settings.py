@@ -27,13 +27,29 @@ INSTALLED_APPS = [
     'accounts',
     'appointments',
     'medical_records',
+    'channels',
     'messaging',
     'payments',
     'reviews',
     'backup',
     'dbbackup',
     'privacy',
+    'search',
 ]
+
+
+# Remplacement du serveur WSGI par ASGI
+ASGI_APPLICATION = 'mediconnect.asgi.application'
+
+# Configuration Redis (broker WebSocket)
+CHANNEL_LAYERS = {
+    'default': {
+        'BACKEND': 'channels_redis.core.RedisChannelLayer',
+        'CONFIG': {
+            'hosts': [('127.0.0.1', 6379)],
+        },
+    },
+}
 
 STORAGES = {
     "default": {
@@ -78,12 +94,16 @@ TEMPLATES = [
     },
 ]
 
-WSGI_APPLICATION = 'config.wsgi.application'
+
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': 'mediconnect',
+        'USER': 'postgres',
+        'PASSWORD': 'admin',
+        'HOST': 'localhost',
+        'PORT': '5432',
     }
 }
 

@@ -1,711 +1,604 @@
-import React, { useState, useEffect } from 'react';
-import { 
-  CalendarIcon,
-  ClockIcon,
-  UserGroupIcon,
-  VideoCameraIcon,
-  MagnifyingGlassIcon,
-  FunnelIcon,
-  DocumentTextIcon,
-  CheckCircleIcon,
-  XMarkIcon,
-  ArrowRightIcon,
-  EyeIcon,
-  ArrowDownIcon,
-  FilterIcon,
-  UserIcon,
-  EnvelopeIcon,
-  PhoneIcon,
-  MapPinIcon,
-  CurrencyDollarIcon
+import React, { useState, useEffect, useCallback } from 'react';
+import {
+  CalendarIcon, ClockIcon, UserGroupIcon, VideoCameraIcon,
+  MagnifyingGlassIcon, DocumentTextIcon, CheckCircleIcon,
+  XMarkIcon, EyeIcon, ArrowDownIcon, EnvelopeIcon,
+  PhoneIcon, MapPinIcon, CurrencyDollarIcon, ArrowPathIcon,
+  ExclamationTriangleIcon,
 } from '@heroicons/react/24/outline';
+import api from '../../services/api';
 
-export default function ConsultationHistory() {
-  const [consultations, setConsultations] = useState([]);
-  const [filteredConsultations, setFilteredConsultations] = useState([]);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [filterStatus, setFilterStatus] = useState('all');
-  const [filterType, setFilterType] = useState('all');
-  const [filterDateRange, setFilterDateRange] = useState('all');
-  const [selectedConsultation, setSelectedConsultation] = useState(null);
-  const [showDetails, setShowDetails] = useState(false);
+// ============================================================
+// HELPERS
+// ============================================================
+const getStatusColor = (status) => {
+  switch (status) {
+    case 'completed':  return 'bg-green-100 text-green-800';
+    case 'cancelled':  return 'bg-red-100 text-red-800';
+    case 'confirmed':  return 'bg-blue-100 text-blue-800';
+    case 'pending':    return 'bg-yellow-100 text-yellow-800';
+    default:           return 'bg-gray-100 text-gray-800';
+  }
+};
 
-  // Mock consultation history data
-  const mockConsultations = [
-    {
-      id: 1,
-      patientId: 'PAT-001',
-      patientName: 'Thomas Fotsing',
-      patientEmail: 'thomas.fotsing@email.com',
-      patientPhone: '+237 677 888 999',
-      patientAge: 32,
-      patientGender: 'male',
-      date: '2024-12-15',
-      time: '14:30',
-      duration: '30 minutes',
-      type: 'presentiel',
-      status: 'completed',
-      specialty: 'Médecine générale',
-      reason: 'Consultation de routine',
-      diagnosis: 'Hypertension artérielle légère',
-      symptoms: 'Maux de tête fréquents, fatigue',
-      treatment: 'Prescription d\'antihypertenseurs, recommandation régime hyposodé',
-      notes: 'Patient suit bien le traitement, pression contrôlée',
-      location: 'Hôpital Central Yaoundé',
-      price: '5000 XAF',
-      paymentStatus: 'paid',
-      paymentMethod: 'Mobile Money',
-      followUpRequired: true,
-      followUpDate: '2024-12-29',
-      prescriptionId: 'PRES-2024-001',
-      documents: ['Certificat médical', 'Résultats analyse'],
-      createdAt: '2024-12-10T10:00:00Z',
-      updatedAt: '2024-12-15T15:00:00Z'
-    },
-    {
-      id: 2,
-      patientId: 'PAT-002',
-      patientName: 'Marie Kengne',
-      patientEmail: 'marie.kengne@email.com',
-      patientPhone: '+237 655 444 333',
-      patientAge: 28,
-      patientGender: 'female',
-      date: '2024-12-10',
-      time: '10:00',
-      duration: '45 minutes',
-      type: 'video',
-      status: 'completed',
-      specialty: 'Médecine générale',
-      reason: 'Suivi diabète',
-      diagnosis: 'Diabète type 2 bien contrôlé',
-      symptoms: 'Glycémie stable, fatigue légère',
-      treatment: 'Ajustement traitement metformine, recommandation exercice',
-      notes: 'Patient motivé, bonne observance thérapeutique',
-      location: 'Visioconférence',
-      price: '6000 XAF',
-      paymentStatus: 'paid',
-      paymentMethod: 'Orange Money',
-      followUpRequired: true,
-      followUpDate: '2024-12-24',
-      prescriptionId: 'PRES-2024-002',
-      documents: ['Ordonnance', 'Note de suivi'],
-      createdAt: '2024-12-08T14:00:00Z',
-      updatedAt: '2024-12-10T10:45:00Z'
-    },
-    {
-      id: 3,
-      patientId: 'PAT-003',
-      patientName: 'Jean Mballa',
-      patientEmail: 'jean.mballa@email.com',
-      patientPhone: '+237 699 777 666',
-      patientAge: 45,
-      patientGender: 'male',
-      date: '2024-12-08',
-      time: '11:00',
-      duration: '60 minutes',
-      type: 'presentiel',
-      status: 'completed',
-      specialty: 'Cardiologie',
-      reason: 'Consultation cardiologique',
-      diagnosis: 'Cardiopathie hypertensive',
-      symptoms: 'Douleurs thoraciques, essoufflement à l\'effort',
-      treatment: 'Bêtabloquants, IEC, recommandation coronarographie',
-      notes: 'Patient stabilisé sous traitement, surveillance régulière',
-      location: 'Clinique des Basseurs Douala',
-      price: '8000 XAF',
-      paymentStatus: 'paid',
-      paymentMethod: 'Carte bancaire',
-      followUpRequired: true,
-      followUpDate: '2024-12-22',
-      prescriptionId: 'PRES-2024-003',
-      documents: ['ECG', 'Échocardiographie', 'Ordonnance'],
-      createdAt: '2024-12-05T09:00:00Z',
-      updatedAt: '2024-12-08T12:00:00Z'
-    },
-    {
-      id: 4,
-      patientId: 'PAT-004',
-      patientName: 'Sophie Ngo',
-      patientEmail: 'sophie.ngo@email.com',
-      patientPhone: '+237 688 555 444',
-      patientAge: 35,
-      patientGender: 'female',
-      date: '2024-12-05',
-      time: '15:30',
-      duration: '30 minutes',
-      type: 'video',
-      status: 'cancelled',
-      specialty: 'Médecine générale',
-      reason: 'Consultation pédiatrique',
-      diagnosis: null,
-      symptoms: null,
-      treatment: null,
-      notes: 'Annulation par patient 24h à l\'avance',
-      location: 'Visioconférence',
-      price: '6000 XAF',
-      paymentStatus: 'refunded',
-      paymentMethod: 'Orange Money',
-      followUpRequired: false,
-      followUpDate: null,
-      prescriptionId: null,
-      documents: [],
-      createdAt: '2024-12-04T16:00:00Z',
-      updatedAt: '2024-12-05T09:00:00Z'
-    }
-  ];
-
-  useEffect(() => {
-    setConsultations(mockConsultations);
-    setFilteredConsultations(mockConsultations);
-  }, []);
-
-  useEffect(() => {
-    let filtered = consultations;
-
-    // Filter by search query
-    if (searchQuery) {
-      filtered = filtered.filter(consultation => 
-        consultation.patientName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        consultation.reason.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        consultation.diagnosis?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        consultation.specialty.toLowerCase().includes(searchQuery.toLowerCase())
-      );
-    }
-
-    // Filter by status
-    if (filterStatus !== 'all') {
-      filtered = filtered.filter(consultation => consultation.status === filterStatus);
-    }
-
-    // Filter by type
-    if (filterType !== 'all') {
-      filtered = filtered.filter(consultation => consultation.type === filterType);
-    }
-
-    // Filter by date range
-    if (filterDateRange !== 'all') {
-      const today = new Date();
-      let startDate;
-      
-      switch (filterDateRange) {
-        case '7days':
-          startDate = new Date(today.setDate(today.getDate() - 7));
-          break;
-        case '30days':
-          startDate = new Date(today.setDate(today.getDate() - 30));
-          break;
-        case '90days':
-          startDate = new Date(today.setDate(today.getDate() - 90));
-          break;
-        case '1year':
-          startDate = new Date(today.setFullYear(today.getFullYear() - 1));
-          break;
-        default:
-          startDate = null;
-      }
-      
-      if (startDate) {
-        filtered = filtered.filter(consultation => 
-          new Date(consultation.date) >= startDate
-        );
-      }
-    }
-
-    setFilteredConsultations(filtered);
-  }, [consultations, searchQuery, filterStatus, filterType, filterDateRange]);
-
-  const getStatusColor = (status) => {
-    switch (status) {
-      case 'completed': return 'bg-green-100 text-green-800';
-      case 'cancelled': return 'bg-red-100 text-red-800';
-      case 'pending': return 'bg-yellow-100 text-yellow-800';
-      default: return 'bg-gray-100 text-gray-800';
-    }
+const getStatusLabel = (status) => {
+  const map = {
+    completed: 'Terminée',
+    cancelled: 'Annulée',
+    confirmed: 'Confirmée',
+    pending:   'En attente',
   };
+  return map[status] || status;
+};
 
-  const getTypeIcon = (type) => {
-    return type === 'video' ? VideoCameraIcon : UserGroupIcon;
-  };
+const getTypeColor = (type) =>
+  type === 'video' ? 'bg-purple-100 text-purple-800' : 'bg-teal-100 text-teal-800';
 
-  const getTypeColor = (type) => {
-    return type === 'video' ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800';
-  };
+const getTypeLabel = (type) =>
+  type === 'video' ? 'Visioconférence' : 'Présentiel';
 
-  const handleViewDetails = (consultation) => {
-    setSelectedConsultation(consultation);
-    setShowDetails(true);
-  };
+const formatDate = (dateStr) => {
+  if (!dateStr) return '—';
+  return new Date(dateStr).toLocaleDateString('fr-FR', {
+    day: 'numeric', month: 'short', year: 'numeric',
+  });
+};
 
-  const handleDownloadReport = (consultationId) => {
-    // Simuler le téléchargement d'un rapport
-    console.log('Téléchargement du rapport pour la consultation:', consultationId);
-  };
+const formatPrice = (price) => {
+  if (!price) return '—';
+  return `${Number(price).toLocaleString('fr-FR')} XAF`;
+};
 
-  const stats = {
-    total: consultations.length,
-    completed: consultations.filter(c => c.status === 'completed').length,
-    cancelled: consultations.filter(c => c.status === 'cancelled').length,
-    video: consultations.filter(c => c.type === 'video').length,
-    inPerson: consultations.filter(c => c.type === 'presentiel').length,
-    totalRevenue: consultations
-      .filter(c => c.status === 'completed' && c.paymentStatus === 'paid')
-      .reduce((sum, c) => sum + parseInt(c.price.replace(/\D/g, '')), 0)
-  };
+// ============================================================
+// COMPOSANT : Skeleton loader
+// ============================================================
+const SkeletonRow = () => (
+  <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 animate-pulse">
+    <div className="flex items-center gap-3 mb-4">
+      <div className="h-5 bg-gray-200 rounded w-40"></div>
+      <div className="h-5 bg-gray-100 rounded w-20"></div>
+      <div className="h-5 bg-gray-100 rounded w-20"></div>
+    </div>
+    <div className="grid grid-cols-4 gap-4 mb-4">
+      {[1,2,3,4].map(i => <div key={i} className="h-4 bg-gray-100 rounded"></div>)}
+    </div>
+    <div className="h-16 bg-gray-50 rounded-lg"></div>
+  </div>
+);
+
+// ============================================================
+// COMPOSANT : Modal détails consultation
+// ============================================================
+const DetailModal = ({ consultation, onClose }) => {
+  if (!consultation) return null;
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Header */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900">Historique des consultations</h1>
-              <p className="text-gray-600 mt-1">Consultez l'historique complet de vos consultations</p>
-            </div>
-            
-            <div className="flex items-center space-x-6">
-              <div className="text-center">
-                <p className="text-2xl font-bold text-gray-900">{stats.total}</p>
-                <p className="text-sm text-gray-600">Total</p>
-              </div>
-              <div className="text-center">
-                <p className="text-2xl font-bold text-green-600">{stats.completed}</p>
-                <p className="text-sm text-gray-600">Terminées</p>
-              </div>
-              <div className="text-center">
-                <p className="text-2xl font-bold text-gray-900">{(stats.totalRevenue / 1000).toFixed(1)}k</p>
-                <p className="text-sm text-gray-600">XAF</p>
-              </div>
-            </div>
-          </div>
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-xl shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+
+        {/* Header modal */}
+        <div className="p-6 border-b border-gray-200 flex items-center justify-between sticky top-0 bg-white">
+          <h2 className="text-xl font-bold text-gray-900">Détails de la consultation</h2>
+          <button onClick={onClose} className="p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100">
+            <XMarkIcon className="h-5 w-5" />
+          </button>
         </div>
 
-        {/* Statistics Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-            <div className="flex items-center">
-              <div className="p-3 bg-blue-100 rounded-lg">
-                <CalendarIcon className="h-6 w-6 text-blue-600" />
-              </div>
-              <div className="ml-4">
-                <p className="text-2xl font-bold text-gray-900">{stats.total}</p>
-                <p className="text-sm text-gray-600">Total consultations</p>
-              </div>
-            </div>
-          </div>
-          
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-            <div className="flex items-center">
-              <div className="p-3 bg-green-100 rounded-lg">
-                <CheckCircleIcon className="h-6 w-6 text-green-600" />
-              </div>
-              <div className="ml-4">
-                <p className="text-2xl font-bold text-gray-900">{stats.completed}</p>
-                <p className="text-sm text-gray-600">Consultations terminées</p>
-              </div>
-            </div>
-          </div>
-          
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-            <div className="flex items-center">
-              <div className="p-3 bg-purple-100 rounded-lg">
-                <VideoCameraIcon className="h-6 w-6 text-purple-600" />
-              </div>
-              <div className="ml-4">
-                <p className="text-2xl font-bold text-gray-900">{stats.video}</p>
-                <p className="text-sm text-gray-600">Visioconférences</p>
-              </div>
-            </div>
-          </div>
-          
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-            <div className="flex items-center">
-              <div className="p-3 bg-yellow-100 rounded-lg">
-                <UserGroupIcon className="h-6 w-6 text-yellow-600" />
-              </div>
-              <div className="ml-4">
-                <p className="text-2xl font-bold text-gray-900">{stats.inPerson}</p>
-                <p className="text-sm text-gray-600">Consultations présentielles</p>
-              </div>
-            </div>
-          </div>
-        </div>
+        <div className="p-6 space-y-6">
 
-        {/* Filters */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          {/* Infos patient + consultation */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Recherche</label>
-              <div className="relative">
-                <MagnifyingGlassIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-                <input
-                  type="text"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Rechercher une consultation..."
-                  className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                />
-              </div>
-            </div>
-            
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Statut</label>
-              <select
-                value={filterStatus}
-                onChange={(e) => setFilterStatus(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              >
-                <option value="all">Tous les statuts</option>
-                <option value="completed">Terminé</option>
-                <option value="cancelled">Annulé</option>
-                <option value="pending">En attente</option>
-              </select>
-            </div>
-            
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Type</label>
-              <select
-                value={filterType}
-                onChange={(e) => setFilterType(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              >
-                <option value="all">Tous les types</option>
-                <option value="presentiel">Présentiel</option>
-                <option value="video">Visioconférence</option>
-              </select>
-            </div>
-            
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Période</label>
-              <select
-                value={filterDateRange}
-                onChange={(e) => setFilterDateRange(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              >
-                <option value="all">Toutes les périodes</option>
-                <option value="7days">7 derniers jours</option>
-                <option value="30days">30 derniers jours</option>
-                <option value="90days">90 derniers jours</option>
-                <option value="1year">1 an</option>
-              </select>
-            </div>
-          </div>
-        </div>
-
-        {/* Consultations List */}
-        <div className="space-y-4">
-          {filteredConsultations.length === 0 ? (
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-12 text-center">
-              <CalendarIcon className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-gray-900 mb-2">Aucune consultation trouvée</h3>
-              <p className="text-gray-600">Aucune consultation ne correspond à vos critères de recherche.</p>
-            </div>
-          ) : (
-            filteredConsultations.map((consultation) => (
-              <div key={consultation.id} className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <div className="flex items-center space-x-3 mb-3">
-                      <div className="flex items-center">
-                        {React.createElement(getTypeIcon(consultation.type), { className: 'h-5 w-5 text-gray-400 mr-2' })}
-                        <span className="font-medium text-gray-900">{consultation.patientName}</span>
-                      </div>
-                      
-                      <span className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(consultation.status)}`}>
-                        {consultation.status === 'completed' && 'Terminée'}
-                        {consultation.status === 'cancelled' && 'Annulée'}
-                        {consultation.status === 'pending' && 'En attente'}
-                      </span>
-                      
-                      <span className={`px-2 py-1 text-xs font-medium rounded-full ${getTypeColor(consultation.type)}`}>
-                        {consultation.type === 'video' ? 'Visioconférence' : 'Présentiel'}
-                      </span>
-                    </div>
-                    
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 text-sm">
-                      <div className="flex items-center text-gray-600">
-                        <CalendarIcon className="h-4 w-4 mr-2" />
-                        <span>{new Date(consultation.date).toLocaleDateString('fr-FR')}</span>
-                      </div>
-                      
-                      <div className="flex items-center text-gray-600">
-                        <ClockIcon className="h-4 w-4 mr-2" />
-                        <span>{consultation.time}</span>
-                      </div>
-                      
-                      <div className="flex items-center text-gray-600">
-                        <ClockIcon className="h-4 w-4 mr-2" />
-                        <span>{consultation.duration}</span>
-                      </div>
-                      
-                      <div className="flex items-center text-gray-600">
-                        <MapPinIcon className="h-4 w-4 mr-2" />
-                        <span>{consultation.location}</span>
-                      </div>
-                    </div>
-                    
-                    <div className="mt-3 p-3 bg-gray-50 rounded-lg">
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                        <div>
-                          <span className="font-medium text-gray-700">Motif:</span>
-                          <p className="text-gray-600">{consultation.reason}</p>
-                        </div>
-                        
-                        <div>
-                          <span className="font-medium text-gray-700">Spécialité:</span>
-                          <p className="text-gray-600">{consultation.specialty}</p>
-                        </div>
-                        
-                        {consultation.diagnosis && (
-                          <div>
-                            <span className="font-medium text-gray-700">Diagnostic:</span>
-                            <p className="text-gray-600">{consultation.diagnosis}</p>
-                          </div>
-                        )}
-                        
-                        {consultation.treatment && (
-                          <div>
-                            <span className="font-medium text-gray-700">Traitement:</span>
-                            <p className="text-gray-600">{consultation.treatment}</p>
-                          </div>
-                        )}
-                      </div>
-                      
-                      {consultation.notes && (
-                        <div className="mt-3">
-                          <span className="font-medium text-gray-700">Notes:</span>
-                          <p className="text-gray-600 text-sm">{consultation.notes}</p>
-                        </div>
-                      )}
-                    </div>
-                    
-                    <div className="flex items-center justify-between mt-4">
-                      <div className="flex items-center space-x-4 text-sm">
-                        <div className="flex items-center text-gray-600">
-                          <EnvelopeIcon className="h-4 w-4 mr-1" />
-                          <span>{consultation.patientEmail}</span>
-                        </div>
-                        
-                        <div className="flex items-center text-gray-600">
-                          <PhoneIcon className="h-4 w-4 mr-1" />
-                          <span>{consultation.patientPhone}</span>
-                        </div>
-                        
-                        <div className="flex items-center text-gray-600">
-                          <CurrencyDollarIcon className="h-4 w-4 mr-1" />
-                          <span>{consultation.price}</span>
-                        </div>
-                      </div>
-                      
-                      <div className="flex items-center space-x-2">
-                        <button
-                          onClick={() => handleViewDetails(consultation)}
-                          className="px-3 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors flex items-center"
-                        >
-                          <EyeIcon className="h-4 w-4 mr-2" />
-                          Détails
-                        </button>
-                        
-                        <button
-                          onClick={() => handleDownloadReport(consultation.id)}
-                          className="px-3 py-2 bg-gray-600 text-white text-sm rounded-lg hover:bg-gray-700 transition-colors flex items-center"
-                        >
-                          <ArrowDownIcon className="h-4 w-4 mr-2" />
-                          Rapport
-                        </button>
-                        
-                        {consultation.prescriptionId && (
-                          <button
-                            className="px-3 py-2 bg-purple-600 text-white text-sm rounded-lg hover:bg-purple-700 transition-colors flex items-center"
-                          >
-                            <DocumentTextIcon className="h-4 w-4 mr-2" />
-                            Ordonnance
-                          </button>
-                        )}
-                      </div>
-                    </div>
+              <h3 className="font-semibold text-gray-900 mb-3 pb-2 border-b border-gray-100">
+                Informations patient
+              </h3>
+              <dl className="space-y-2 text-sm">
+                {[
+                  ['Nom',       consultation.patient_name],
+                  ['Email',     consultation.patient_email],
+                  ['Téléphone', consultation.patient_phone],
+                  ['Âge',       consultation.patient_age ? `${consultation.patient_age} ans` : '—'],
+                  ['Genre',     consultation.patient_gender === 'male' ? 'Homme'
+                              : consultation.patient_gender === 'female' ? 'Femme' : '—'],
+                ].map(([label, value]) => (
+                  <div key={label} className="flex justify-between">
+                    <span className="text-gray-500">{label} :</span>
+                    <span className="font-medium text-gray-900">{value || '—'}</span>
                   </div>
+                ))}
+              </dl>
+            </div>
+
+            <div>
+              <h3 className="font-semibold text-gray-900 mb-3 pb-2 border-b border-gray-100">
+                Informations consultation
+              </h3>
+              <dl className="space-y-2 text-sm">
+                {[
+                  ['Date',    formatDate(consultation.date)],
+                  ['Heure',   consultation.time ? consultation.time.slice(0, 5) : '—'],
+                  ['Durée',   consultation.duration || '30 min'],
+                  ['Type',    getTypeLabel(consultation.type)],
+                  ['Lieu',    consultation.location || '—'],
+                  ['Tarif',   formatPrice(consultation.price)],
+                ].map(([label, value]) => (
+                  <div key={label} className="flex justify-between">
+                    <span className="text-gray-500">{label} :</span>
+                    <span className="font-medium text-gray-900">{value}</span>
+                  </div>
+                ))}
+                <div className="flex justify-between items-center">
+                  <span className="text-gray-500">Statut :</span>
+                  <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${getStatusColor(consultation.status)}`}>
+                    {getStatusLabel(consultation.status)}
+                  </span>
                 </div>
+              </dl>
+            </div>
+          </div>
+
+          {/* Compte-rendu médical */}
+          {consultation.compte_rendu && (
+            <div>
+              <h3 className="font-semibold text-gray-900 mb-3 pb-2 border-b border-gray-100">
+                Compte-rendu médical
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                {[
+                  ['Motif',           consultation.compte_rendu.motif],
+                  ['Diagnostic',      consultation.compte_rendu.diagnostic],
+                  ['Observations',    consultation.compte_rendu.observations],
+                  ['Traitement',      consultation.compte_rendu.traitement],
+                  ['Recommandations', consultation.compte_rendu.recommandations],
+                ].filter(([, v]) => v).map(([label, value]) => (
+                  <div key={label} className={label === 'Recommandations' || label === 'Observations' ? 'md:col-span-2' : ''}>
+                    <span className="font-medium text-gray-700">{label} :</span>
+                    <p className="text-gray-600 mt-1">{value}</p>
+                  </div>
+                ))}
               </div>
-            ))
+            </div>
           )}
+
+          {/* Motif du RDV (si pas de compte-rendu) */}
+          {!consultation.compte_rendu && consultation.reason && (
+            <div>
+              <h3 className="font-semibold text-gray-900 mb-3 pb-2 border-b border-gray-100">
+                Motif de la consultation
+              </h3>
+              <p className="text-sm text-gray-600">{consultation.reason}</p>
+            </div>
+          )}
+
+          {/* Prescription */}
+          {consultation.prescription && (
+            <div>
+              <h3 className="font-semibold text-gray-900 mb-3 pb-2 border-b border-gray-100">
+                Prescription #{consultation.prescription.id}
+              </h3>
+              {consultation.prescription.items?.length > 0 ? (
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="text-left text-gray-500 border-b border-gray-100">
+                      <th className="pb-2 font-medium">Médicament</th>
+                      <th className="pb-2 font-medium">Posologie</th>
+                      <th className="pb-2 font-medium">Durée</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-50">
+                    {consultation.prescription.items.map((item) => (
+                      <tr key={item.id}>
+                        <td className="py-2 font-medium text-gray-900">{item.nom}</td>
+                        <td className="py-2 text-gray-600">{item.posologie}</td>
+                        <td className="py-2 text-gray-600">{item.duree}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              ) : (
+                <p className="text-sm text-gray-500">Aucun médicament listé.</p>
+              )}
+              {consultation.prescription.notes && (
+                <p className="mt-2 text-sm text-gray-600">
+                  <span className="font-medium">Notes :</span> {consultation.prescription.notes}
+                </p>
+              )}
+            </div>
+          )}
+
         </div>
 
-        {/* Details Modal */}
-        {showDetails && selectedConsultation && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-xl shadow-xl max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto">
-              <div className="p-6 border-b border-gray-200">
-                <div className="flex items-center justify-between">
-                  <h2 className="text-xl font-bold text-gray-900">Détails de la consultation</h2>
-                  <button
-                    onClick={() => setShowDetails(false)}
-                    className="p-2 text-gray-500 hover:text-gray-700 transition-colors"
-                  >
-                    <XMarkIcon className="h-5 w-5" />
-                  </button>
-                </div>
+        {/* Footer modal */}
+        <div className="p-6 border-t border-gray-100 flex justify-end gap-3">
+          <button
+            onClick={onClose}
+            className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 text-sm"
+          >
+            Fermer
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ============================================================
+// COMPOSANT PRINCIPAL : ConsultationHistory
+// ============================================================
+export default function ConsultationHistory() {
+  const [consultations, setConsultations] = useState([]);
+  const [loading, setLoading]             = useState(true);
+  const [error, setError]                 = useState(null);
+
+  // Pagination
+  const [page, setPage]       = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [total, setTotal]     = useState(0);
+  const PER_PAGE = 10;
+
+  // Filtres
+  const [search,      setSearch]      = useState('');
+  const [filterStatus, setFilterStatus] = useState('all');
+  const [filterType,   setFilterType]   = useState('all');
+  const [filterPeriod, setFilterPeriod] = useState('all');
+
+  // Modal
+  const [selectedConsultation, setSelectedConsultation] = useState(null);
+
+  // ============================================================
+  // CHARGEMENT
+  // ============================================================
+  const loadHistory = useCallback(async (currentPage = 1) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const filters = {
+        page:     currentPage,
+        per_page: PER_PAGE,
+      };
+      if (search)                        filters.search = search;
+      if (filterStatus !== 'all')        filters.status = filterStatus;
+      if (filterType   !== 'all')        filters.type   = filterType;
+      if (filterPeriod !== 'all')        filters.period = filterPeriod;
+
+      const data = await api.getDoctorConsultationHistory(filters);
+
+      setConsultations(data.results || []);
+      setTotal(data.count || 0);
+      setTotalPages(data.pages || 1);
+      setPage(currentPage);
+    } catch (err) {
+      console.error('Erreur historique:', err);
+      setError('Impossible de charger l\'historique. Vérifiez votre connexion.');
+    } finally {
+      setLoading(false);
+    }
+  }, [search, filterStatus, filterType, filterPeriod]);
+
+  // Rechargement quand les filtres changent (reset page 1)
+  useEffect(() => {
+    loadHistory(1);
+  }, [search, filterStatus, filterType, filterPeriod]);
+
+  // ============================================================
+  // STATS LOCALES (calculées depuis les données chargées)
+  // ============================================================
+  const stats = {
+    total,
+    completed: consultations.filter(c => c.status === 'completed').length,
+    video:     consultations.filter(c => c.type === 'video').length,
+    inPerson:  consultations.filter(c => c.type !== 'video').length,
+    totalRevenue: consultations
+      .filter(c => c.status === 'completed')
+      .reduce((sum, c) => sum + (Number(c.price) || 0), 0),
+  };
+
+  // ============================================================
+  // RENDER
+  // ============================================================
+  return (
+    <div className="space-y-6">
+
+      {/* ====== HEADER ====== */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">Historique des consultations</h1>
+            <p className="text-gray-500 mt-1 text-sm">
+              {total > 0 ? `${total} consultation${total > 1 ? 's' : ''} au total` : 'Aucune consultation'}
+            </p>
+          </div>
+          <div className="flex items-center gap-6 text-center">
+            <div>
+              <p className="text-2xl font-bold text-gray-900">{total}</p>
+              <p className="text-xs text-gray-500">Total</p>
+            </div>
+            <div>
+              <p className="text-2xl font-bold text-green-600">{stats.completed}</p>
+              <p className="text-xs text-gray-500">Terminées</p>
+            </div>
+            <div>
+              <p className="text-2xl font-bold text-blue-600">
+                {(stats.totalRevenue / 1000).toFixed(1)}k
+              </p>
+              <p className="text-xs text-gray-500">XAF</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* ====== STATS CARDS ====== */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        {[
+          { label: 'Total', value: total,           icon: CalendarIcon,    bg: 'bg-blue-100',   ico: 'text-blue-600' },
+          { label: 'Terminées', value: stats.completed, icon: CheckCircleIcon, bg: 'bg-green-100',  ico: 'text-green-600' },
+          { label: 'Visio', value: stats.video,      icon: VideoCameraIcon, bg: 'bg-purple-100', ico: 'text-purple-600' },
+          { label: 'Présentiel', value: stats.inPerson, icon: UserGroupIcon,  bg: 'bg-teal-100',   ico: 'text-teal-600' },
+        ].map(({ label, value, icon: Icon, bg, ico }) => (
+          <div key={label} className="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
+            <div className="flex items-center gap-3">
+              <div className={`p-2.5 rounded-lg ${bg}`}>
+                <Icon className={`h-5 w-5 ${ico}`} />
               </div>
-              
-              <div className="p-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {/* Patient Information */}
-                  <div>
-                    <h3 className="font-semibold text-gray-900 mb-3">Informations patient</h3>
-                    <div className="space-y-2 text-sm">
-                      <div className="flex justify-between">
-                        <span className="text-gray-600">Nom:</span>
-                        <span className="font-medium">{selectedConsultation.patientName}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-gray-600">Email:</span>
-                        <span className="font-medium">{selectedConsultation.patientEmail}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-gray-600">Téléphone:</span>
-                        <span className="font-medium">{selectedConsultation.patientPhone}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-gray-600">Âge:</span>
-                        <span className="font-medium">{selectedConsultation.patientAge} ans</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-gray-600">Genre:</span>
-                        <span className="font-medium">{selectedConsultation.patientGender === 'male' ? 'Homme' : 'Femme'}</span>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  {/* Consultation Information */}
-                  <div>
-                    <h3 className="font-semibold text-gray-900 mb-3">Informations consultation</h3>
-                    <div className="space-y-2 text-sm">
-                      <div className="flex justify-between">
-                        <span className="text-gray-600">Date:</span>
-                        <span className="font-medium">{new Date(selectedConsultation.date).toLocaleDateString('fr-FR')}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-gray-600">Heure:</span>
-                        <span className="font-medium">{selectedConsultation.time}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-gray-600">Durée:</span>
-                        <span className="font-medium">{selectedConsultation.duration}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-gray-600">Type:</span>
-                        <span className="font-medium">{selectedConsultation.type === 'video' ? 'Visioconférence' : 'Présentiel'}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-gray-600">Lieu:</span>
-                        <span className="font-medium">{selectedConsultation.location}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-gray-600">Statut:</span>
-                        <span className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(selectedConsultation.status)}`}>
-                          {selectedConsultation.status === 'completed' && 'Terminée'}
-                          {selectedConsultation.status === 'cancelled' && 'Annulée'}
-                          {selectedConsultation.status === 'pending' && 'En attente'}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                
-                {/* Medical Details */}
-                <div className="mt-6">
-                  <h3 className="font-semibold text-gray-900 mb-3">Détails médicaux</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="space-y-3 text-sm">
-                      <div>
-                        <span className="font-medium text-gray-700">Motif:</span>
-                        <p className="text-gray-600 mt-1">{selectedConsultation.reason}</p>
-                      </div>
-                      
-                      <div>
-                        <span className="font-medium text-gray-700">Spécialité:</span>
-                        <p className="text-gray-600 mt-1">{selectedConsultation.specialty}</p>
-                      </div>
-                      
-                      {selectedConsultation.diagnosis && (
-                        <div>
-                          <span className="font-medium text-gray-700">Diagnostic:</span>
-                          <p className="text-gray-600 mt-1">{selectedConsultation.diagnosis}</p>
-                        </div>
-                      )}
-                    </div>
-                    
-                    <div className="space-y-3 text-sm">
-                      {selectedConsultation.symptoms && (
-                        <div>
-                          <span className="font-medium text-gray-700">Symptômes:</span>
-                          <p className="text-gray-600 mt-1">{selectedConsultation.symptoms}</p>
-                        </div>
-                      )}
-                      
-                      {selectedConsultation.treatment && (
-                        <div>
-                          <span className="font-medium text-gray-700">Traitement:</span>
-                          <p className="text-gray-600 mt-1">{selectedConsultation.treatment}</p>
-                        </div>
-                      )}
-                      
-                      {selectedConsultation.notes && (
-                        <div>
-                          <span className="font-medium text-gray-700">Notes:</span>
-                          <p className="text-gray-600 mt-1">{selectedConsultation.notes}</p>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
-                
-                {/* Follow-up Information */}
-                {selectedConsultation.followUpRequired && (
-                  <div className="mt-6 p-4 bg-blue-50 rounded-lg">
-                    <h3 className="font-semibold text-gray-900 mb-3">Suivi requis</h3>
-                    <p className="text-sm text-gray-700">
-                      Un suivi est prévu pour le {new Date(selectedConsultation.followUpDate).toLocaleDateString('fr-FR')}
-                    </p>
-                  </div>
-                )}
-                
-                {/* Documents */}
-                {selectedConsultation.documents && selectedConsultation.documents.length > 0 && (
-                  <div className="mt-6">
-                    <h3 className="font-semibold text-gray-900 mb-3">Documents</h3>
-                    <div className="flex flex-wrap gap-2">
-                      {selectedConsultation.documents.map((doc, index) => (
-                        <span key={index} className="px-3 py-1 bg-gray-100 text-gray-800 rounded-full text-sm">
-                          {doc}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                )}
-                
-                {/* Actions */}
-                <div className="flex justify-end space-x-3 mt-6">
-                  <button
-                    onClick={() => handleDownloadReport(selectedConsultation.id)}
-                    className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors flex items-center"
-                  >
-                    <ArrowDownIcon className="h-4 w-4 mr-2" />
-                    Télécharger le rapport
-                  </button>
-                  
-                  {selectedConsultation.prescriptionId && (
-                    <button className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors flex items-center">
-                      <DocumentTextIcon className="h-4 w-4 mr-2" />
-                      Voir l'ordonnance
-                    </button>
-                  )}
-                </div>
+              <div>
+                <p className="text-xl font-bold text-gray-900">{value}</p>
+                <p className="text-xs text-gray-500">{label}</p>
               </div>
             </div>
+          </div>
+        ))}
+      </div>
+
+      {/* ====== FILTRES ====== */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+
+          {/* Recherche */}
+          <div>
+            <label className="block text-xs font-medium text-gray-700 mb-1.5">Recherche</label>
+            <div className="relative">
+              <MagnifyingGlassIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+              <input
+                type="text"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Nom patient, motif..."
+                className="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+            </div>
+          </div>
+
+          {/* Statut */}
+          <div>
+            <label className="block text-xs font-medium text-gray-700 mb-1.5">Statut</label>
+            <select
+              value={filterStatus}
+              onChange={(e) => setFilterStatus(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            >
+              <option value="all">Tous les statuts</option>
+              <option value="completed">Terminé</option>
+              <option value="confirmed">Confirmé</option>
+              <option value="cancelled">Annulé</option>
+              <option value="pending">En attente</option>
+            </select>
+          </div>
+
+          {/* Type */}
+          <div>
+            <label className="block text-xs font-medium text-gray-700 mb-1.5">Type</label>
+            <select
+              value={filterType}
+              onChange={(e) => setFilterType(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            >
+              <option value="all">Tous les types</option>
+              <option value="presentiel">Présentiel</option>
+              <option value="video">Visioconférence</option>
+            </select>
+          </div>
+
+          {/* Période */}
+          <div>
+            <label className="block text-xs font-medium text-gray-700 mb-1.5">Période</label>
+            <select
+              value={filterPeriod}
+              onChange={(e) => setFilterPeriod(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            >
+              <option value="all">Toutes les périodes</option>
+              <option value="7days">7 derniers jours</option>
+              <option value="30days">30 derniers jours</option>
+              <option value="90days">90 derniers jours</option>
+              <option value="1year">1 an</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      {/* ====== ERREUR ====== */}
+      {error && (
+        <div className="flex items-center gap-3 p-4 bg-red-50 border border-red-200 rounded-xl">
+          <ExclamationTriangleIcon className="h-5 w-5 text-red-500 flex-shrink-0" />
+          <p className="text-sm text-red-700">{error}</p>
+          <button
+            onClick={() => loadHistory(page)}
+            className="ml-auto text-sm text-red-700 underline hover:no-underline"
+          >
+            Réessayer
+          </button>
+        </div>
+      )}
+
+      {/* ====== LISTE ====== */}
+      <div className="space-y-4">
+
+        {/* Skeleton */}
+        {loading && [1,2,3].map(i => <SkeletonRow key={i} />)}
+
+        {/* Vide */}
+        {!loading && consultations.length === 0 && !error && (
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-12 text-center">
+            <CalendarIcon className="h-12 w-12 text-gray-300 mx-auto mb-3" />
+            <h3 className="text-base font-medium text-gray-900">Aucune consultation trouvée</h3>
+            <p className="text-sm text-gray-500 mt-1">
+              {search || filterStatus !== 'all' || filterType !== 'all' || filterPeriod !== 'all'
+                ? 'Modifiez vos filtres pour voir plus de résultats.'
+                : 'Vous n\'avez pas encore de consultations enregistrées.'}
+            </p>
           </div>
         )}
+
+        {/* Résultats */}
+        {!loading && consultations.map((consultation) => (
+          <div key={consultation.id} className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
+
+            {/* Ligne 1 : patient + badges */}
+            <div className="flex flex-wrap items-center gap-2 mb-3">
+              <span className="font-semibold text-gray-900">{consultation.patient_name}</span>
+              <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(consultation.status)}`}>
+                {getStatusLabel(consultation.status)}
+              </span>
+              <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium ${getTypeColor(consultation.type)}`}>
+                {getTypeLabel(consultation.type)}
+              </span>
+              {consultation.compte_rendu && (
+                <span className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800">
+                  ✓ Compte-rendu
+                </span>
+              )}
+              {consultation.prescription && (
+                <span className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800">
+                  ✓ Ordonnance
+                </span>
+              )}
+            </div>
+
+            {/* Ligne 2 : date / heure / lieu / durée / tarif */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-5 gap-3 text-sm text-gray-600 mb-3">
+              <div className="flex items-center gap-1.5">
+                <CalendarIcon className="h-4 w-4 text-gray-400 flex-shrink-0" />
+                <span>{formatDate(consultation.date)}</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <ClockIcon className="h-4 w-4 text-gray-400 flex-shrink-0" />
+                <span>
+                  {consultation.time ? consultation.time.slice(0, 5) : '--:--'}
+                  {consultation.duration && ` · ${consultation.duration}`}
+                </span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <MapPinIcon className="h-4 w-4 text-gray-400 flex-shrink-0" />
+                <span className="truncate">{consultation.location || '—'}</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <CurrencyDollarIcon className="h-4 w-4 text-gray-400 flex-shrink-0" />
+                <span>{formatPrice(consultation.price)}</span>
+              </div>
+              {consultation.patient_phone && (
+                <div className="flex items-center gap-1.5">
+                  <PhoneIcon className="h-4 w-4 text-gray-400 flex-shrink-0" />
+                  <span className="truncate">{consultation.patient_phone}</span>
+                </div>
+              )}
+            </div>
+
+            {/* Résumé médical (compte-rendu si dispo, sinon motif) */}
+            <div className="p-3 bg-gray-50 rounded-lg text-sm">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <span className="font-medium text-gray-700">Motif : </span>
+                  <span className="text-gray-600">{consultation.reason || '—'}</span>
+                </div>
+                {consultation.compte_rendu?.diagnostic && (
+                  <div>
+                    <span className="font-medium text-gray-700">Diagnostic : </span>
+                    <span className="text-gray-600">{consultation.compte_rendu.diagnostic}</span>
+                  </div>
+                )}
+                {consultation.compte_rendu?.traitement && (
+                  <div className="sm:col-span-2">
+                    <span className="font-medium text-gray-700">Traitement : </span>
+                    <span className="text-gray-600">{consultation.compte_rendu.traitement}</span>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Actions */}
+            <div className="flex items-center justify-between mt-4">
+              <div className="flex items-center gap-2 text-xs text-gray-400">
+                {consultation.patient_email && (
+                  <span className="flex items-center gap-1">
+                    <EnvelopeIcon className="h-3.5 w-3.5" />
+                    {consultation.patient_email}
+                  </span>
+                )}
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setSelectedConsultation(consultation)}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 text-white text-xs rounded-lg hover:bg-blue-700 transition-colors"
+                >
+                  <EyeIcon className="h-3.5 w-3.5" />
+                  Détails
+                </button>
+              </div>
+            </div>
+          </div>
+        ))}
       </div>
+
+      {/* ====== PAGINATION ====== */}
+      {!loading && totalPages > 1 && (
+        <div className="flex items-center justify-between bg-white rounded-xl shadow-sm border border-gray-200 px-6 py-4">
+          <p className="text-sm text-gray-500">
+            Page {page} sur {totalPages} · {total} résultat{total > 1 ? 's' : ''}
+          </p>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => loadHistory(page - 1)}
+              disabled={page <= 1}
+              className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              ← Précédent
+            </button>
+            {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+              const p = page <= 3 ? i + 1 : page - 2 + i;
+              if (p < 1 || p > totalPages) return null;
+              return (
+                <button
+                  key={p}
+                  onClick={() => loadHistory(p)}
+                  className={`px-3 py-1.5 rounded-lg text-sm font-medium ${
+                    p === page
+                      ? 'bg-blue-600 text-white'
+                      : 'border border-gray-300 text-gray-700 hover:bg-gray-50'
+                  }`}
+                >
+                  {p}
+                </button>
+              );
+            })}
+            <button
+              onClick={() => loadHistory(page + 1)}
+              disabled={page >= totalPages}
+              className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              Suivant →
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ====== MODAL DÉTAILS ====== */}
+      {selectedConsultation && (
+        <DetailModal
+          consultation={selectedConsultation}
+          onClose={() => setSelectedConsultation(null)}
+        />
+      )}
+
     </div>
   );
 }

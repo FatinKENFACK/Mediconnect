@@ -43,7 +43,7 @@ const SkeletonStatCard = () => (
 // COMPOSANT PRINCIPAL : Dashboard Patient
 // ============================================================
 const Dashboard = () => {
-  const user = JSON.parse(localStorage.getItem('user') || '{}');
+  const user = JSON.parse(localStorage.getItem("user") || "{}");
 
   // ---- RDV ----
   const [prochainRdv, setProchainRdv] = useState(null);
