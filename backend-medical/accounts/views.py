@@ -678,13 +678,6 @@ class ChangePasswordView(APIView):
         user.set_password(new_password)
         user.save()
  
-
-
-
- # ============================================================
-# Ajoute cette vue dans accounts/views.py
-# ============================================================
-
 class ChangePasswordView(APIView):
     """Permet à l'utilisateur connecté de changer son mot de passe."""
     permission_classes = [permissions.IsAuthenticated]
@@ -722,12 +715,42 @@ class ChangePasswordView(APIView):
         return Response({'success': True, 'message': 'Mot de passe mis à jour avec succès.'})
 
 
-# ============================================================
-# Dans accounts/urls.py, ajoute :
-# ============================================================
-# from .views import ChangePasswordView
-# path('change-password/', ChangePasswordView.as_view(), name='change-password'),
+# ===================== HÔPITAL — Activer/Désactiver SES PROPRES médecins =====================
+class HospitalDoctorStatusView(APIView):
+    permission_classes = [permissions.IsAuthenticated, IsHospitalRole]
 
+    def patch(self, request, pk):
+        try:
+            hospital = request.user.hospital
+        except Exception:
+            return Response({'error': 'Profil hôpital introuvable'}, status=403)
+
+        try:
+            doctor = Doctor.objects.get(pk=pk)
+        except Doctor.DoesNotExist:
+            return Response({'error': 'Médecin non trouvé'}, status=404)
+
+        #  Sécurité : l'hôpital ne peut gérer QUE ses propres médecins
+        if doctor.hospital_id != hospital.id:
+            return Response(
+                {'error': "Vous ne pouvez gérer que les médecins rattachés à votre établissement."},
+                status=403
+            )
+
+        action = request.data.get('action')
+
+        if action == 'activate':
+            doctor.user.is_active = True
+            doctor.is_verified = True
+            doctor.user.save()
+            doctor.save()
+            return Response({'success': True, 'message': 'Médecin activé avec succès'})
+        elif action == 'deactivate':
+            doctor.user.is_active = False
+            doctor.user.save()
+            return Response({'success': True, 'message': 'Médecin désactivé avec succès'})
+        else:
+            return Response({'error': 'Action invalide'}, status=400)
 
 
 

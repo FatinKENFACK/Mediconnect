@@ -9,7 +9,7 @@ from .views import (
     AdminDoctorListView, AdminDoctorStatusView,
     PublicHospitalListView, PublicHospitalDetailView,
     HospitalDoctorsView,
-    HospitalStatsView, AdminSubscriptionListView, AdminSubscriptionStatusView, ChangePasswordView,
+    HospitalStatsView, AdminSubscriptionListView, AdminSubscriptionStatusView, ChangePasswordView, HospitalDoctorStatusView,
 )
 
 urlpatterns = [
@@ -56,6 +56,7 @@ urlpatterns = [
     path('admin/subscriptions/<int:pk>/status/', AdminSubscriptionStatusView.as_view(), name='admin-subscription-status'),
 
     path('change-password/', ChangePasswordView.as_view(), name='change-password'),
+    path('hospital/doctors/<int:pk>/status/', HospitalDoctorStatusView.as_view(), name='hospital-doctor-status'),
 
 
 ]

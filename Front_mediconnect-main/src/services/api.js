@@ -896,7 +896,24 @@ const changePassword = async (currentPassword, newPassword, confirmPassword) => 
   });
 };
 
+const getAvailableContacts = async () => {
+  return await request('/messaging/contacts/');
+};
+ 
+// Construit l'URL WebSocket avec le token JWT en query string
+// Utilisation : new WebSocket(api.getChatSocketUrl(conversationId))
+const getChatSocketUrl = (conversationId) => {
+  const token = getAccessToken();
+  const WS_BASE = 'ws://localhost:8000';
+  return `${WS_BASE}/ws/chat/${conversationId}/?token=${token}`;
+};
 
+const updateHospitalDoctorStatus = async (doctorId, action) => {
+  return await request(`/accounts/hospital/doctors/${doctorId}/status/`, {
+    method: 'PATCH',
+    body: JSON.stringify({ action }),
+  });
+};
 
 
 
@@ -1029,6 +1046,11 @@ const api = {
   searchAdmin,
 
   changePassword,
+
+  getAvailableContacts,
+  getChatSocketUrl,
+
+  updateHospitalDoctorStatus
 };
 
 export default api;

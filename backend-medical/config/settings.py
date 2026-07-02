@@ -11,6 +11,7 @@ DEBUG = True
 ALLOWED_HOSTS = ['localhost', '127.0.0.1']
 
 INSTALLED_APPS = [
+    'daphne',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -39,7 +40,7 @@ INSTALLED_APPS = [
 
 
 # Remplacement du serveur WSGI par ASGI
-ASGI_APPLICATION = 'mediconnect.asgi.application'
+ASGI_APPLICATION = 'config.asgi.application'
 
 # Configuration Redis (broker WebSocket)
 CHANNEL_LAYERS = {

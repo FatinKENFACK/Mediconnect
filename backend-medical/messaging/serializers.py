@@ -1,75 +1,136 @@
+# messaging/serializers.py
+
 from rest_framework import serializers
 from .models import Conversation, Message
 
 
 # ============================================================
 # SERIALIZER : Message
-# Convertit un message Python en JSON et vice versa
 # ============================================================
 class MessageSerializer(serializers.ModelSerializer):
+    sender_name = serializers.SerializerMethodField()
+    sender_role = serializers.SerializerMethodField()
+    is_mine     = serializers.SerializerMethodField()
+
     class Meta:
-        model = Message
+        model  = Message
         fields = [
-            'id',           # Identifiant unique du message
-            'sender',       # Qui a envoyé : 'patient' ou 'doctor'
-            'content',      # Contenu du message
-            'is_read',      # Si le message a été lu
-            'created_at'    # Date et heure d'envoi
+            'id', 'conversation', 'sender', 'sender_name', 'sender_role',
+            'content', 'is_read', 'is_mine', 'created_at',
         ]
-        # Ces champs sont générés automatiquement
-        read_only_fields = ['id', 'created_at', 'is_read']
+
+    def get_sender_name(self, obj):
+        return f"{obj.sender.first_name} {obj.sender.last_name}".strip()
+
+    def get_sender_role(self, obj):
+        return obj.sender.role
+
+    def get_is_mine(self, obj):
+        request = self.context.get('request')
+        if request and request.user.is_authenticated:
+            return obj.sender_id == request.user.id
+        return False
 
 
 # ============================================================
-# SERIALIZER : Conversation
-# Inclut les messages et les infos du dernier message
+# SERIALIZER : Conversation (liste)
 # ============================================================
-class ConversationSerializer(serializers.ModelSerializer):
-
-    # Inclut tous les messages de la conversation
-    # many=True car une conversation a plusieurs messages
-    # read_only=True car on ne crée pas de messages via ce serializer
-    messages = MessageSerializer(many=True, read_only=True)
-
-    # Champ calculé pour afficher le dernier message dans la liste
-    last_message_text = serializers.SerializerMethodField()
-
-    # Champ calculé pour l'heure du dernier message
-    last_message_time = serializers.SerializerMethodField()
-
-    # Champ calculé pour le nombre de messages non lus
-    unread_count = serializers.SerializerMethodField()
+class ConversationListSerializer(serializers.ModelSerializer):
+    other_participant_name      = serializers.SerializerMethodField()
+    other_participant_role      = serializers.SerializerMethodField()
+    other_participant_avatar    = serializers.SerializerMethodField()
+    other_participant_specialty = serializers.SerializerMethodField()
+    last_message_text           = serializers.SerializerMethodField()
+    last_message_time           = serializers.SerializerMethodField()
+    unread_count                = serializers.IntegerField(read_only=True)
 
     class Meta:
-        model = Conversation
+        model  = Conversation
         fields = [
-            'id',
-            'doctor_name',          # Nom du médecin
-            'doctor_specialty',     # Spécialité du médecin
-            'messages',             # Liste de tous les messages
-            'last_message_text',    # Aperçu du dernier message
-            'last_message_time',    # Heure du dernier message
-            'unread_count',         # Nombre de messages non lus
-            'created_at',
-            'updated_at'
+            'id', 'type',
+            'other_participant_name', 'other_participant_role',
+            'other_participant_avatar', 'other_participant_specialty',
+            'last_message_text', 'last_message_time',
+            'unread_count', 'updated_at',
         ]
-        read_only_fields = ['id', 'created_at', 'updated_at']
 
-    # Retourne le texte du dernier message
-    # Utilisé pour l'aperçu dans la liste des conversations
+    def _get_other_user(self, obj):
+        """Retourne l'utilisateur en face, selon qui est connecté."""
+        request = self.context.get('request')
+        if not request or not request.user.is_authenticated:
+            return None
+        current_id = request.user.id
+
+        for participant in [obj.patient, obj.medecin, obj.hopital]:
+            if participant and participant.id != current_id:
+                return participant
+        return None
+
+    def get_other_participant_name(self, obj):
+        user = self._get_other_user(obj)
+        if not user:
+            return "Utilisateur"
+        if user.role == 'doctor':
+            return f"Dr. {user.first_name} {user.last_name}".strip()
+        if user.role == 'hospital' and hasattr(user, 'hospital'):
+            return user.hospital.name
+        return f"{user.first_name} {user.last_name}".strip()
+
+    def get_other_participant_role(self, obj):
+        user = self._get_other_user(obj)
+        return user.role if user else None
+
+    def get_other_participant_avatar(self, obj):
+        user = self._get_other_user(obj)
+        if user and user.profile_picture:
+            return user.profile_picture.url
+        return None
+
+    def get_other_participant_specialty(self, obj):
+        user = self._get_other_user(obj)
+        if user and user.role == 'doctor':
+            return getattr(user, 'specialization', '') or ''
+        return ''
+
     def get_last_message_text(self, obj):
-        last = obj.messages.last()
-        if last:
-            return last.content[:50]  # On tronque à 50 caractères
-        return ''
+        last = obj.last_message
+        return last.content if last else ''
 
-    # Retourne l'heure du dernier message formatée
     def get_last_message_time(self, obj):
-        last = obj.messages.last()
-        if last:
-            return last.created_at.strftime('%H:%M')
-        return ''
+        last = obj.last_message
+        return last.created_at.isoformat() if last else None
 
-    # Retourne le nombre de messages non lus
-    def get_unread_count(self, obj):
-        return obj.messages.filter(sender='doctor', is_read=False).count()
+
+# ============================================================
+# SERIALIZER : Détail conversation (avec tous les messages)
+# ============================================================
+class ConversationDetailSerializer(ConversationListSerializer):
+    messages = serializers.SerializerMethodField()
+
+    class Meta(ConversationListSerializer.Meta):
+        fields = ConversationListSerializer.Meta.fields + ['messages']
+
+    def get_messages(self, obj):
+        msgs = obj.messages.all().order_by('created_at')
+        return MessageSerializer(msgs, many=True, context=self.context).data
+
+
+# ============================================================
+# SERIALIZER : Création conversation
+# ============================================================
+class ConversationCreateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model  = Conversation
+        fields = ['id', 'type', 'patient', 'medecin', 'hopital']
+
+    def validate(self, attrs):
+        conv_type = attrs.get('type')
+
+        if conv_type == 'patient_medecin' and not (attrs.get('patient') and attrs.get('medecin')):
+            raise serializers.ValidationError("patient et medecin sont requis pour ce type.")
+        if conv_type == 'medecin_hopital' and not (attrs.get('medecin') and attrs.get('hopital')):
+            raise serializers.ValidationError("medecin et hopital sont requis pour ce type.")
+        if conv_type == 'patient_hopital' and not (attrs.get('patient') and attrs.get('hopital')):
+            raise serializers.ValidationError("patient et hopital sont requis pour ce type.")
+
+        return attrs

@@ -82,6 +82,7 @@ import ParametresDoctor from './pages/doctor/ParametresDoctor';
 
 // Layout et pages admin
 import ReviewManagement from './pages/admin/ReviewManagement';
+import DoctorManagement from './pages/admin/DoctorManagement';
 import AdminLayout from './layouts/AdminLayout';
 import AdminDashboard from './pages/admin/Dashboard';
 import HospitalManagement from './pages/admin/HospitalManagement';
@@ -101,7 +102,7 @@ function App() {
           <Route path="/connexion" element={<Login />} />
           <Route path="/inscription" element={<Register />} />
           <Route path="/aide" element={<Help />} />
-          <Route path="/inscription-hopital" element={<HospitalRegistration />} /> 
+          <Route path="/inscription-hopital" element={<HospitalRegistration />} />
           <Route path="/inscription-medecin" element={<DoctorRegister />} />
           <Route path="*" element={<NotFound />} />
 
@@ -201,6 +202,8 @@ function App() {
           }> */}
           <Route path="/admin" element={<AdminLayout />}>
             <Route index element={<AdminDashboard />} />
+            <Route path="medecins" element={<DoctorManagement />} />
+
             <Route path="tableau-de-bord" element={<AdminDashboard />} />
             <Route path="hopitaux" element={<HospitalManagement />} />
             <Route path="abonnements" element={<SubscriptionManagement />} />
@@ -211,7 +214,6 @@ function App() {
             <Route path="parametres" element={<Settings />} />
             <Route path="avis" element={<ReviewManagement />} />
           </Route>
-          
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </AuthProvider>

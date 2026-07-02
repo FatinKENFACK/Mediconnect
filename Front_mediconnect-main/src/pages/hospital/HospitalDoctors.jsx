@@ -69,11 +69,16 @@ const HospitalDoctors = () => {
     setTimeout(() => setNotification(null), 3000);
   };
 
+  // ============================================================
+  // ✅ CORRECTION : utilise updateHospitalDoctorStatus
+  // (route sécurisée /hospital/doctors/<id>/status/)
+  // au lieu de updateDoctorStatus (route admin réservée -> 403)
+  // ============================================================
   const handleToggleStatus = async (doctor) => {
     const action = doctor.is_verified ? 'deactivate' : 'activate';
     setTogglingId(doctor.id);
     try {
-      await api.updateDoctorStatus(doctor.id, action);
+      await api.updateHospitalDoctorStatus(doctor.id, action);
       setDoctors(prev =>
         prev.map(d => d.id === doctor.id ? { ...d, is_verified: !d.is_verified } : d)
       );
@@ -82,8 +87,8 @@ const HospitalDoctors = () => {
           ? `Dr. ${doctor.first_name} ${doctor.last_name} activé avec succès`
           : `Dr. ${doctor.first_name} ${doctor.last_name} désactivé`
       );
-    } catch {
-      showNotif('error', 'Erreur lors de la mise à jour du statut.');
+    } catch (err) {
+      showNotif('error', err.message || 'Erreur lors de la mise à jour du statut.');
     } finally {
       setTogglingId(null);
     }
@@ -91,15 +96,18 @@ const HospitalDoctors = () => {
 
   const openDeleteModal  = (doctor) => { setSelectedDoctor(doctor); setShowDeleteModal(true); };
 
+  // ============================================================
+  // ✅ CORRECTION : même chose ici
+  // ============================================================
   const handleDeleteConfirm = async () => {
     if (!selectedDoctor) return;
     setDeleteLoading(true);
     try {
-      await api.updateDoctorStatus(selectedDoctor.id, 'deactivate');
+      await api.updateHospitalDoctorStatus(selectedDoctor.id, 'deactivate');
       setDoctors(prev => prev.filter(d => d.id !== selectedDoctor.id));
       showNotif('success', `Dr. ${selectedDoctor.first_name} ${selectedDoctor.last_name} supprimé.`);
-    } catch {
-      showNotif('error', 'Erreur lors de la suppression.');
+    } catch (err) {
+      showNotif('error', err.message || 'Erreur lors de la suppression.');
     } finally {
       setDeleteLoading(false);
       setShowDeleteModal(false);
@@ -249,7 +257,6 @@ const HospitalDoctors = () => {
               ) : filtered.map(doctor => (
                 <tr key={doctor.id} className="hover:bg-gray-50 transition-colors">
 
-                  {/* Médecin */}
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center">
                       <div className="h-10 w-10 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
@@ -270,20 +277,17 @@ const HospitalDoctors = () => {
                     </div>
                   </td>
 
-                  {/* Spécialité */}
                   <td className="px-6 py-4 whitespace-nowrap">
                     <p className="text-sm text-gray-900">{doctor.specialization || '—'}</p>
                     {doctor.license_number && <p className="text-xs text-gray-400">N° {doctor.license_number}</p>}
                   </td>
 
-                  {/* Expérience */}
                   <td className="px-6 py-4 whitespace-nowrap">
                     <p className="text-sm text-gray-900">
                       {doctor.experience_years ? `${doctor.experience_years} ans` : '—'}
                     </p>
                   </td>
 
-                  {/* Tarif */}
                   <td className="px-6 py-4 whitespace-nowrap">
                     <p className="text-sm text-gray-900">
                       {doctor.fee_in_person ? `${Number(doctor.fee_in_person).toLocaleString('fr-FR')} XAF` : '—'}
@@ -293,7 +297,6 @@ const HospitalDoctors = () => {
                     )}
                   </td>
 
-                  {/* Statut */}
                   <td className="px-6 py-4 whitespace-nowrap">
                     <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
                       doctor.is_verified ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
@@ -307,7 +310,6 @@ const HospitalDoctors = () => {
                     )}
                   </td>
 
-                  {/* Actions */}
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center gap-2">
                       <button
