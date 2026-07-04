@@ -4,8 +4,10 @@ import {
   ArrowLeftIcon, PaperAirplaneIcon, PaperClipIcon, FaceSmileIcon,
   MagnifyingGlassIcon as SearchIcon, EllipsisVerticalIcon,
   PhoneIcon, VideoCameraIcon, CheckIcon, UserCircleIcon,
+  PlusCircleIcon,
 } from '@heroicons/react/24/outline';
 import api from '../../services/api';
+import NewConversationModal from '../../components/messaging/NewConversationModal';
 
 // ============================================================
 // HELPERS
@@ -21,12 +23,11 @@ const formatTime = (iso) => {
   return d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' });
 };
 
-const formatMsgTime = (iso) => {
-  if (!iso) return '';
-  return new Date(iso).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
-};
+const formatMsgTime = (iso) =>
+  iso ? new Date(iso).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) : '';
 
-const initials = (name) => (name || '?').split(' ').map(w => w[0]).slice(0, 2).join('').toUpperCase();
+const initials = (name) =>
+  (name || '?').split(' ').map(w => w[0]).slice(0, 2).join('').toUpperCase();
 
 // ============================================================
 // COMPOSANT PRINCIPAL : Messages (Patient)
@@ -41,12 +42,13 @@ const Messages = () => {
   const [loadingActive, setLoadingActive]  = useState(false);
   const [message, setMessage]              = useState('');
   const [search, setSearch]                = useState('');
-  const [otherTyping, setOtherTyping]       = useState(false);
-  const [wsConnected, setWsConnected]       = useState(false);
+  const [otherTyping, setOtherTyping]      = useState(false);
+  const [wsConnected, setWsConnected]      = useState(false);
+  const [showNewModal, setShowNewModal]    = useState(false);
 
-  const messagesEndRef = useRef(null);
-  const wsRef           = useRef(null);
-  const typingTimeoutRef = useRef(null);
+  const messagesEndRef    = useRef(null);
+  const wsRef             = useRef(null);
+  const typingTimeoutRef  = useRef(null);
 
   // ============================================================
   // CHARGER LA LISTE DES CONVERSATIONS
@@ -66,65 +68,43 @@ const Messages = () => {
   useEffect(() => { loadConversations(); }, [loadConversations]);
 
   // ============================================================
-  // CHARGER LA CONVERSATION ACTIVE (historique complet)
+  // CHARGER LA CONVERSATION ACTIVE
   // ============================================================
   useEffect(() => {
-    if (!conversationId) {
-      setActiveConversation(null);
-      return;
-    }
-
-    const loadConversation = async () => {
+    if (!conversationId) { setActiveConversation(null); return; }
+    const load = async () => {
       setLoadingActive(true);
       try {
         const data = await api.getConversation(conversationId);
         setActiveConversation(data);
-      } catch (err) {
-        console.error('Erreur chargement conversation:', err);
-        setActiveConversation(null);
-      } finally {
-        setLoadingActive(false);
-      }
+      } catch { setActiveConversation(null); }
+      finally { setLoadingActive(false); }
     };
-    loadConversation();
+    load();
   }, [conversationId]);
 
   // ============================================================
-  // CONNEXION WEBSOCKET
+  // WEBSOCKET
   // ============================================================
   useEffect(() => {
     if (!conversationId) return;
-
-    const wsUrl = api.getChatSocketUrl(conversationId);
-    const ws = new WebSocket(wsUrl);
+    const ws = new WebSocket(api.getChatSocketUrl(conversationId));
     wsRef.current = ws;
-
     ws.onopen = () => setWsConnected(true);
-
     ws.onmessage = (event) => {
       const data = JSON.parse(event.data);
-
       if (data.type === 'message') {
         setActiveConversation(prev => {
           if (!prev) return prev;
-          // Éviter les doublons
           if (prev.messages?.some(m => m.id === data.message.id)) return prev;
-          return {
-            ...prev,
-            messages: [...(prev.messages || []), {
-              id: data.message.id,
-              content: data.message.content,
-              created_at: data.message.created_at,
-              is_mine: data.message.sender_id !== getOtherParticipantId(prev),
-              sender_name: data.message.sender_name,
-              is_read: data.message.is_read,
-            }],
-          };
+          return { ...prev, messages: [...(prev.messages || []), {
+            id: data.message.id, content: data.message.content,
+            created_at: data.message.created_at, is_mine: false,
+            is_read: data.message.is_read,
+          }]};
         });
-        // Mettre à jour la liste (dernier message + tri)
         loadConversations();
       }
-
       if (data.type === 'typing') {
         setOtherTyping(data.is_typing);
         if (data.is_typing) {
@@ -133,55 +113,38 @@ const Messages = () => {
         }
       }
     };
-
     ws.onclose = () => setWsConnected(false);
     ws.onerror = () => setWsConnected(false);
-
-    return () => {
-      ws.close();
-      wsRef.current = null;
-    };
+    return () => { ws.close(); wsRef.current = null; };
   }, [conversationId]);
 
-  // Helper : retrouve l'ID de l'autre participant (pour distinguer is_mine côté WS)
-  const getOtherParticipantId = () => null; // is_mine déjà géré côté serveur via sender_id == request.user
-
   // ============================================================
-  // SCROLL AUTO EN BAS
+  // SCROLL AUTO
   // ============================================================
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [activeConversation?.messages]);
 
   // ============================================================
-  // ENVOI MESSAGE (via WebSocket, fallback REST si déconnecté)
+  // ENVOI MESSAGE
   // ============================================================
   const handleSendMessage = async (e) => {
     e.preventDefault();
     const content = message.trim();
     if (!content) return;
-
     setMessage('');
-
     if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
       wsRef.current.send(JSON.stringify({ type: 'message', content }));
     } else {
-      // Fallback REST si le WebSocket n'est pas connecté
       try {
         const sent = await api.sendMessage(conversationId, content);
         setActiveConversation(prev => prev ? {
-          ...prev,
-          messages: [...(prev.messages || []), sent],
+          ...prev, messages: [...(prev.messages || []), sent],
         } : prev);
-      } catch (err) {
-        console.error('Erreur envoi message:', err);
-      }
+      } catch (err) { console.error('Erreur envoi:', err); }
     }
   };
 
-  // ============================================================
-  // INDICATEUR "EN TRAIN D'ÉCRIRE"
-  // ============================================================
   const handleTyping = (val) => {
     setMessage(val);
     if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
@@ -190,7 +153,19 @@ const Messages = () => {
   };
 
   // ============================================================
-  // FILTRAGE RECHERCHE
+  // NOUVELLE CONVERSATION CRÉÉE
+  // ============================================================
+  const handleConversationCreated = (conv) => {
+    setConversations(prev => {
+      const exists = prev.some(c => c.id === conv.id);
+      if (exists) return prev;
+      return [conv, ...prev];
+    });
+    navigate(`/patient/messages/${conv.id}`);
+  };
+
+  // ============================================================
+  // FILTRAGE
   // ============================================================
   const filteredConversations = conversations.filter(c =>
     (c.other_participant_name || '').toLowerCase().includes(search.toLowerCase())
@@ -202,25 +177,37 @@ const Messages = () => {
   return (
     <div className="flex h-[calc(100vh-64px)] bg-white">
 
-      {/* ====== LISTE DES CONVERSATIONS ====== */}
-      <div className={`${conversationId ? 'hidden md:block' : 'block'} w-full md:w-1/3 border-r border-gray-200`}>
+      {/* ====== LISTE ====== */}
+      <div className={`${conversationId ? 'hidden md:block' : 'block'} w-full md:w-1/3 border-r border-gray-200 flex flex-col`}>
+
+        {/* Header liste */}
         <div className="p-4 border-b border-gray-200">
-          <h1 className="text-xl font-bold text-gray-900">Messages</h1>
-          <div className="relative mt-4">
+          <div className="flex items-center justify-between mb-3">
+            <h1 className="text-xl font-bold text-gray-900">Messages</h1>
+            {/* ✅ BOUTON NOUVELLE CONVERSATION */}
+            <button
+              onClick={() => setShowNewModal(true)}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors"
+              title="Nouvelle conversation"
+            >
+              <PlusCircleIcon className="h-4 w-4" />
+              Nouveau
+            </button>
+          </div>
+          <div className="relative">
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
               <SearchIcon className="h-5 w-5 text-gray-400" />
             </div>
             <input
-              type="text"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+              type="text" value={search} onChange={(e) => setSearch(e.target.value)}
+              className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md sm:text-sm focus:ring-blue-500 focus:border-blue-500"
               placeholder="Rechercher une conversation..."
             />
           </div>
         </div>
 
-        <div className="overflow-y-auto h-[calc(100%-80px)]">
+        {/* Liste conversations */}
+        <div className="overflow-y-auto flex-1">
           {loadingList ? (
             <div className="p-4 space-y-4 animate-pulse">
               {[1,2,3].map(i => (
@@ -236,43 +223,50 @@ const Messages = () => {
           ) : filteredConversations.length === 0 ? (
             <div className="p-8 text-center">
               <UserCircleIcon className="h-12 w-12 text-gray-300 mx-auto mb-2" />
-              <p className="text-sm text-gray-500">Aucune conversation</p>
-            </div>
-          ) : (
-            filteredConversations.map((conversation) => (
-              <div
-                key={conversation.id}
-                onClick={() => navigate(`/patient/messages/${conversation.id}`)}
-                className={`flex items-center p-4 border-b border-gray-100 hover:bg-gray-50 cursor-pointer ${
-                  conversationId === String(conversation.id) ? 'bg-blue-50' : ''
-                }`}
+              <p className="text-sm text-gray-500 mb-3">Aucune conversation</p>
+              <button
+                onClick={() => setShowNewModal(true)}
+                className="inline-flex items-center gap-1 text-sm text-blue-600 hover:text-blue-700 font-medium"
               >
-                <div className="h-12 w-12 rounded-full bg-blue-100 flex items-center justify-center mr-3 flex-shrink-0 overflow-hidden">
-                  {conversation.other_participant_avatar ? (
-                    <img src={conversation.other_participant_avatar} className="h-12 w-12 object-cover" alt="" />
-                  ) : (
-                    <span className="text-blue-700 font-semibold text-sm">
-                      {initials(conversation.other_participant_name)}
-                    </span>
-                  )}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex justify-between items-center">
-                    <h2 className="text-sm font-medium text-gray-900 truncate">
-                      {conversation.other_participant_name}
-                    </h2>
-                    <span className="text-xs text-gray-500">{formatTime(conversation.last_message_time)}</span>
-                  </div>
-                  <p className="text-sm text-gray-500 truncate">{conversation.last_message_text || 'Aucun message'}</p>
-                </div>
-                {conversation.unread_count > 0 && (
-                  <span className="ml-2 bg-blue-600 text-white text-xs font-medium px-2 py-0.5 rounded-full flex-shrink-0">
-                    {conversation.unread_count}
+                <PlusCircleIcon className="h-4 w-4" />
+                Démarrer une conversation
+              </button>
+            </div>
+          ) : filteredConversations.map((conversation) => (
+            <div
+              key={conversation.id}
+              onClick={() => navigate(`/patient/messages/${conversation.id}`)}
+              className={`flex items-center p-4 border-b border-gray-100 hover:bg-gray-50 cursor-pointer ${
+                conversationId === String(conversation.id) ? 'bg-blue-50' : ''
+              }`}
+            >
+              <div className="h-12 w-12 rounded-full bg-blue-100 flex items-center justify-center mr-3 flex-shrink-0 overflow-hidden">
+                {conversation.other_participant_avatar ? (
+                  <img src={conversation.other_participant_avatar} className="h-12 w-12 object-cover" alt="" />
+                ) : (
+                  <span className="text-blue-700 font-semibold text-sm">
+                    {initials(conversation.other_participant_name)}
                   </span>
                 )}
               </div>
-            ))
-          )}
+              <div className="flex-1 min-w-0">
+                <div className="flex justify-between items-center">
+                  <h2 className="text-sm font-medium text-gray-900 truncate">
+                    {conversation.other_participant_name}
+                  </h2>
+                  <span className="text-xs text-gray-500">{formatTime(conversation.last_message_time)}</span>
+                </div>
+                <p className="text-sm text-gray-500 truncate">
+                  {conversation.last_message_text || 'Aucun message'}
+                </p>
+              </div>
+              {conversation.unread_count > 0 && (
+                <span className="ml-2 bg-blue-600 text-white text-xs font-medium px-2 py-0.5 rounded-full flex-shrink-0">
+                  {conversation.unread_count}
+                </span>
+              )}
+            </div>
+          ))}
         </div>
       </div>
 
@@ -280,7 +274,7 @@ const Messages = () => {
       {conversationId ? (
         loadingActive ? (
           <div className="flex-1 flex items-center justify-center">
-            <p className="text-sm text-gray-400">Chargement de la conversation...</p>
+            <p className="text-sm text-gray-400">Chargement...</p>
           </div>
         ) : activeConversation ? (
           <div className="flex-1 flex flex-col">
@@ -288,7 +282,7 @@ const Messages = () => {
             {/* En-tête */}
             <div className="flex items-center justify-between p-4 border-b border-gray-200">
               <div className="flex items-center">
-                <button onClick={() => navigate('/patient/messages')} className="md:hidden mr-4 text-gray-500 hover:text-gray-700">
+                <button onClick={() => navigate('/patient/messages')} className="md:hidden mr-4 text-gray-500">
                   <ArrowLeftIcon className="h-5 w-5" />
                 </button>
                 <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center mr-3 overflow-hidden">
@@ -305,11 +299,8 @@ const Messages = () => {
                     {activeConversation.other_participant_name}
                   </h2>
                   <p className="text-xs text-gray-500">
-                    {otherTyping ? (
-                      <span className="text-blue-500">en train d'écrire...</span>
-                    ) : (
-                      activeConversation.other_participant_specialty || (wsConnected ? 'En ligne' : '')
-                    )}
+                    {otherTyping ? <span className="text-blue-500">en train d'écrire...</span>
+                      : activeConversation.other_participant_specialty || (wsConnected ? 'En ligne' : '')}
                   </p>
                 </div>
               </div>
@@ -360,10 +351,8 @@ const Messages = () => {
                   <FaceSmileIcon className="h-5 w-5" />
                 </button>
                 <input
-                  type="text"
-                  value={message}
-                  onChange={(e) => handleTyping(e.target.value)}
-                  className="flex-1 mx-2 px-4 py-2 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  type="text" value={message} onChange={(e) => handleTyping(e.target.value)}
+                  className="flex-1 mx-2 px-4 py-2 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500"
                   placeholder="Écrivez votre message..."
                 />
                 <button type="submit" disabled={!message.trim()} className="p-2 text-blue-600 hover:text-blue-800 disabled:text-gray-400">
@@ -380,15 +369,30 @@ const Messages = () => {
       ) : (
         <div className="hidden md:flex flex-1 items-center justify-center bg-gray-50">
           <div className="text-center p-6">
-            <div className="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-blue-100">
+            <div className="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-blue-100 mb-4">
               <UserCircleIcon className="h-8 w-8 text-blue-600" />
             </div>
-            <h3 className="mt-4 text-lg font-medium text-gray-900">Sélectionnez une conversation</h3>
+            <h3 className="text-lg font-medium text-gray-900">Sélectionnez une conversation</h3>
             <p className="mt-1 text-sm text-gray-500">
-              Choisissez une conversation existante ou commencez-en une nouvelle.
+              Choisissez une conversation ou commencez-en une nouvelle.
             </p>
+            <button
+              onClick={() => setShowNewModal(true)}
+              className="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700"
+            >
+              <PlusCircleIcon className="h-4 w-4" />
+              Nouvelle conversation
+            </button>
           </div>
         </div>
+      )}
+
+      {/* ====== MODAL NOUVELLE CONVERSATION ====== */}
+      {showNewModal && (
+        <NewConversationModal
+          onClose={() => setShowNewModal(false)}
+          onConversationCreated={handleConversationCreated}
+        />
       )}
     </div>
   );

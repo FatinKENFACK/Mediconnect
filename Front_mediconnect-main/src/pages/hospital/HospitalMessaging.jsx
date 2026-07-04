@@ -1,447 +1,506 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
-  ChatBubbleLeftRightIcon,
-  MagnifyingGlassIcon,
-  UserCircleIcon,
-  PaperAirplaneIcon,
-  PaperClipIcon,
-  PhoneIcon,
-  VideoCameraIcon,
-  EllipsisHorizontalIcon,
-  CheckCircleIcon,
-  ClockIcon,
-  ExclamationCircleIcon
+  EnvelopeIcon, PaperAirplaneIcon, PaperClipIcon,
+  MagnifyingGlassIcon, CheckCircleIcon, ClockIcon,
+  TrashIcon, ArchiveBoxIcon, PlusCircleIcon,
+  BuildingOfficeIcon,
 } from '@heroicons/react/24/outline';
+import api from '../../services/api';
+import NewConversationModal from '../../components/messaging/NewConversationModal';
 
+// ============================================================
+// HELPERS
+// ============================================================
+const formatDate = (iso) => {
+  if (!iso) return '';
+  const d = new Date(iso);
+  const today = new Date();
+  if (d.toDateString() === today.toDateString())
+    return d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+  const yesterday = new Date(today);
+  yesterday.setDate(today.getDate() - 1);
+  if (d.toDateString() === yesterday.toDateString()) return 'Hier';
+  return d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' });
+};
+
+const formatMsgTime = (iso) =>
+  iso ? new Date(iso).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) : '';
+
+const initials = (name) =>
+  (name || '?').split(' ').map(w => w[0]).slice(0, 2).join('').toUpperCase();
+
+// ============================================================
+// COMPOSANT PRINCIPAL : HospitalMessaging
+// ============================================================
 const HospitalMessaging = () => {
-  const [conversations, setConversations] = useState([]);
-  const [selectedConversation, setSelectedConversation] = useState(null);
-  const [messages, setMessages] = useState([]);
-  const [newMessage, setNewMessage] = useState('');
-  const [searchQuery, setSearchQuery] = useState('');
-  const [filterStatus, setFilterStatus] = useState('all');
-  const [isLoading, setIsLoading] = useState(false);
+  const [conversations, setConversations]           = useState([]);
+  const [loadingList, setLoadingList]               = useState(true);
+  const [searchTerm, setSearchTerm]                 = useState('');
+  const [activeTab, setActiveTab]                   = useState('tous');
+  const [selectedId, setSelectedId]                 = useState(null);
+  const [activeConversation, setActiveConversation] = useState(null);
+  const [loadingActive, setLoadingActive]           = useState(false);
+  const [newMessage, setNewMessage]                 = useState('');
+  const [wsConnected, setWsConnected]               = useState(false);
+  const [otherTyping, setOtherTyping]               = useState(false);
+  const [showNewModal, setShowNewModal]             = useState(false);
 
-  useEffect(() => {
-    const mockConversations = [
-      {
-        id: 1,
-        patient: {
-          name: 'Jean Dupont',
-          email: 'jean.dupont@email.com',
-          phone: '+221 77 123 45 67',
-          avatar: null
-        },
-        doctor: 'Dr. Martin Laurent',
-        service: 'Cardiologie',
-        lastMessage: 'Merci pour la consultation d\'aujourd\'hui',
-        lastMessageTime: '14:30',
-        unreadCount: 2,
-        status: 'active',
-        priority: 'normal',
-        appointmentId: 1
-      },
-      {
-        id: 2,
-        patient: {
-          name: 'Marie Laurent',
-          email: 'marie.laurent@email.com',
-          phone: '+221 77 234 56 78',
-          avatar: null
-        },
-        doctor: 'Dr. Sophie Bernard',
-        service: 'Pédiatrie',
-        lastMessage: 'Mon enfant a de la fièvre, que faire ?',
-        lastMessageTime: '12:15',
-        unreadCount: 1,
-        status: 'pending',
-        priority: 'high',
-        appointmentId: 2
-      },
-      {
-        id: 3,
-        patient: {
-          name: 'Pierre Dubois',
-          email: 'pierre.dubois@email.com',
-          phone: '+221 77 345 67 89',
-          avatar: null
-        },
-        doctor: 'Dr. Pierre Dubois',
-        service: 'Radiologie',
-        lastMessage: 'Les résultats sont-ils disponibles ?',
-        lastMessageTime: 'Hier',
-        unreadCount: 0,
-        status: 'resolved',
-        priority: 'normal',
-        appointmentId: 3
-      },
-      {
-        id: 4,
-        patient: {
-          name: 'Sophie Martin',
-          email: 'sophie.martin@email.com',
-          phone: '+221 77 456 78 90',
-          avatar: null
-        },
-        doctor: 'Dr. Marie Lefebvre',
-        service: 'Gynécologie',
-        lastMessage: 'Je souhaite prendre rendez-vous',
-        lastMessageTime: '2 jours',
-        unreadCount: 3,
-        status: 'active',
-        priority: 'normal',
-        appointmentId: 4
-      }
-    ];
-    setConversations(mockConversations);
+  const wsRef            = useRef(null);
+  const typingTimeoutRef = useRef(null);
+  const messagesEndRef   = useRef(null);
+
+  // ============================================================
+  // CHARGEMENT CONVERSATIONS
+  // ============================================================
+  const loadConversations = useCallback(async () => {
+    setLoadingList(true);
+    try {
+      const data = await api.getConversations();
+      setConversations(Array.isArray(data) ? data : data.results || []);
+    } catch (err) {
+      console.error('Erreur chargement conversations:', err);
+    } finally {
+      setLoadingList(false);
+    }
   }, []);
 
-  useEffect(() => {
-    if (selectedConversation) {
-      // Charger les messages de la conversation sélectionnée
-      const mockMessages = [
-        {
-          id: 1,
-          sender: 'patient',
-          content: 'Bonjour, j\'ai une question concernant mon traitement',
-          timestamp: '2024-01-15 09:00',
-          status: 'read'
-        },
-        {
-          id: 2,
-          sender: 'doctor',
-          content: 'Bonjour Jean, je suis à votre disposition. Quelle est votre question ?',
-          timestamp: '2024-01-15 09:15',
-          status: 'read'
-        },
-        {
-          id: 3,
-          sender: 'patient',
-          content: 'Je ressens des effets secondaires avec le nouveau médicament',
-          timestamp: '2024-01-15 09:30',
-          status: 'read'
-        },
-        {
-          id: 4,
-          sender: 'doctor',
-          content: 'Quels sont les effets secondaires que vous ressentez ? Sont-ils graves ?',
-          timestamp: '2024-01-15 10:00',
-          status: 'read'
-        },
-        {
-          id: 5,
-          sender: 'patient',
-          content: 'Merci pour la consultation d\'aujourd\'hui',
-          timestamp: '2024-01-15 14:30',
-          status: 'read'
-        }
-      ];
-      setMessages(mockMessages);
-    }
-  }, [selectedConversation]);
+  useEffect(() => { loadConversations(); }, [loadConversations]);
 
+  // ============================================================
+  // CONVERSATION ACTIVE
+  // ============================================================
+  useEffect(() => {
+    if (!selectedId) { setActiveConversation(null); return; }
+    const load = async () => {
+      setLoadingActive(true);
+      try {
+        const data = await api.getConversation(selectedId);
+        setActiveConversation(data);
+      } catch { setActiveConversation(null); }
+      finally { setLoadingActive(false); }
+    };
+    load();
+  }, [selectedId]);
+
+  // ============================================================
+  // WEBSOCKET
+  // ============================================================
+  useEffect(() => {
+    if (!selectedId) return;
+    const ws = new WebSocket(api.getChatSocketUrl(selectedId));
+    wsRef.current = ws;
+
+    ws.onopen = () => setWsConnected(true);
+
+    ws.onmessage = (event) => {
+      const data = JSON.parse(event.data);
+      if (data.type === 'message') {
+        setActiveConversation(prev => {
+          if (!prev) return prev;
+          if (prev.messages?.some(m => m.id === data.message.id)) return prev;
+          return {
+            ...prev,
+            messages: [...(prev.messages || []), {
+              id: data.message.id,
+              content: data.message.content,
+              created_at: data.message.created_at,
+              is_mine: false,
+              is_read: data.message.is_read,
+            }],
+          };
+        });
+        loadConversations();
+      }
+      if (data.type === 'typing') {
+        setOtherTyping(data.is_typing);
+        if (data.is_typing) {
+          clearTimeout(typingTimeoutRef.current);
+          typingTimeoutRef.current = setTimeout(() => setOtherTyping(false), 3000);
+        }
+      }
+    };
+
+    ws.onclose = () => setWsConnected(false);
+    ws.onerror = () => setWsConnected(false);
+
+    return () => { ws.close(); wsRef.current = null; };
+  }, [selectedId]);
+
+  // ============================================================
+  // SCROLL AUTO
+  // ============================================================
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [activeConversation?.messages]);
+
+  // ============================================================
+  // ENVOI MESSAGE
+  // ============================================================
+  const handleSendMessage = async (e) => {
+    e.preventDefault();
+    const content = newMessage.trim();
+    if (!content) return;
+    setNewMessage('');
+
+    if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+      wsRef.current.send(JSON.stringify({ type: 'message', content }));
+      // Affichage optimiste
+      setActiveConversation(prev => prev ? {
+        ...prev,
+        messages: [...(prev.messages || []), {
+          id: `tmp-${Date.now()}`,
+          content,
+          created_at: new Date().toISOString(),
+          is_mine: true,
+          is_read: false,
+        }],
+      } : prev);
+    } else {
+      try {
+        const sent = await api.sendMessage(selectedId, content);
+        setActiveConversation(prev => prev ? {
+          ...prev,
+          messages: [...(prev.messages || []), sent],
+        } : prev);
+      } catch (err) {
+        console.error('Erreur envoi:', err);
+      }
+    }
+  };
+
+  const handleTyping = (val) => {
+    setNewMessage(val);
+    if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN)
+      wsRef.current.send(JSON.stringify({ type: 'typing', is_typing: val.length > 0 }));
+  };
+
+  // ============================================================
+  // NOUVELLE CONVERSATION CRÉÉE
+  // ============================================================
+  const handleConversationCreated = (conv) => {
+    setConversations(prev => {
+      const exists = prev.some(c => c.id === conv.id);
+      if (exists) return prev;
+      return [conv, ...prev];
+    });
+    setSelectedId(conv.id);
+  };
+
+  // ============================================================
+  // FILTRAGE
+  // ============================================================
   const filteredConversations = conversations.filter(conv => {
-    const matchesSearch = conv.patient.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         conv.doctor.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         conv.service.toLowerCase().includes(searchQuery.toLowerCase());
-    
-    const matchesStatus = filterStatus === 'all' || conv.status === filterStatus;
-    
-    return matchesSearch && matchesStatus;
+    const name = (conv.other_participant_name || '').toLowerCase();
+    const last = (conv.last_message_text || '').toLowerCase();
+    const matchSearch = name.includes(searchTerm.toLowerCase()) ||
+                        last.includes(searchTerm.toLowerCase());
+    const matchTab = activeTab === 'tous' ||
+                     (activeTab === 'non-lus' && conv.unread_count > 0) ||
+                     (activeTab === 'medecins' && conv.other_participant_role === 'doctor') ||
+                     (activeTab === 'patients' && conv.other_participant_role === 'patient');
+    return matchSearch && matchTab;
   });
 
-  const getStatusBadge = (status) => {
-    const statusConfig = {
-      active: { color: 'bg-blue-100 text-blue-800', label: 'Actif' },
-      pending: { color: 'bg-yellow-100 text-yellow-800', label: 'En attente' },
-      resolved: { color: 'bg-green-100 text-green-800', label: 'Résolu' }
+  // ============================================================
+  // BADGE RÔLE
+  // ============================================================
+  const roleBadge = (role) => {
+    const map = {
+      doctor:  { label: 'Médecin',  cls: 'bg-blue-100 text-blue-700' },
+      patient: { label: 'Patient',  cls: 'bg-teal-100 text-teal-700' },
     };
-    
-    const config = statusConfig[status] || statusConfig.active;
+    const r = map[role];
+    if (!r) return null;
     return (
-      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${config.color}`}>
-        {config.label}
+      <span className={`px-1.5 py-0.5 rounded text-xs font-medium ${r.cls}`}>
+        {r.label}
       </span>
     );
   };
 
-  const getPriorityBadge = (priority) => {
-    const priorityConfig = {
-      normal: { color: 'bg-gray-100 text-gray-800', label: 'Normal' },
-      high: { color: 'bg-red-100 text-red-800', label: 'Urgent' },
-      low: { color: 'bg-blue-100 text-blue-800', label: 'Bas' }
-    };
-    
-    const config = priorityConfig[priority] || priorityConfig.normal;
-    return (
-      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${config.color}`}>
-        {config.label}
-      </span>
-    );
-  };
-
-  const sendMessage = async () => {
-    if (!newMessage.trim() || !selectedConversation) return;
-
-    setIsLoading(true);
-    
-    // Simuler l'envoi du message
-    const newMsg = {
-      id: messages.length + 1,
-      sender: 'doctor',
-      content: newMessage,
-      timestamp: new Date().toLocaleString('fr-FR'),
-      status: 'sent'
-    };
-
-    setMessages(prev => [...prev, newMsg]);
-    setNewMessage('');
-    
-    // Mettre à jour la conversation
-    setConversations(prev => prev.map(conv => 
-      conv.id === selectedConversation.id 
-        ? { ...conv, lastMessage: newMessage, lastMessageTime: 'Maintenant' }
-        : conv
-    ));
-    
-    setIsLoading(false);
-  };
-
-  const markAsRead = (conversationId) => {
-    setConversations(prev => prev.map(conv => 
-      conv.id === conversationId 
-        ? { ...conv, unreadCount: 0 }
-        : conv
-    ));
-  };
-
-  const stats = {
-    total: conversations.length,
-    unread: conversations.reduce((sum, conv) => sum + conv.unreadCount, 0),
-    active: conversations.filter(c => c.status === 'active').length,
-    pending: conversations.filter(c => c.status === 'pending').length
-  };
-
+  // ============================================================
+  // RENDER
+  // ============================================================
   return (
-    <div className="p-6 h-full">
-      {/* Header */}
-      <div className="mb-6">
-        <h1 className="text-3xl font-bold text-gray-900">Messagerie</h1>
-        <p className="text-gray-600 mt-2">Communiquez avec les patients</p>
-      </div>
+    <div className="flex h-[calc(100vh-8rem)] bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-          <div className="flex items-center">
-            <div className="bg-blue-500 p-3 rounded-lg">
-              <ChatBubbleLeftRightIcon className="h-6 w-6 text-white" />
-            </div>
-            <div className="ml-4">
-              <p className="text-sm font-medium text-gray-600">Total conversations</p>
-              <p className="text-2xl font-bold text-gray-900">{stats.total}</p>
-            </div>
-          </div>
-        </div>
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-          <div className="flex items-center">
-            <div className="bg-yellow-500 p-3 rounded-lg">
-              <ExclamationCircleIcon className="h-6 w-6 text-white" />
-            </div>
-            <div className="ml-4">
-              <p className="text-sm font-medium text-gray-600">Messages non lus</p>
-              <p className="text-2xl font-bold text-gray-900">{stats.unread}</p>
-            </div>
-          </div>
-        </div>
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-          <div className="flex items-center">
-            <div className="bg-green-500 p-3 rounded-lg">
-              <CheckCircleIcon className="h-6 w-6 text-white" />
-            </div>
-            <div className="ml-4">
-              <p className="text-sm font-medium text-gray-600">Actives</p>
-              <p className="text-2xl font-bold text-gray-900">{stats.active}</p>
-            </div>
-          </div>
-        </div>
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-          <div className="flex items-center">
-            <div className="bg-orange-500 p-3 rounded-lg">
-              <ClockIcon className="h-6 w-6 text-white" />
-            </div>
-            <div className="ml-4">
-              <p className="text-sm font-medium text-gray-600">En attente</p>
-              <p className="text-2xl font-bold text-gray-900">{stats.pending}</p>
-            </div>
-          </div>
-        </div>
-      </div>
+      {/* ====== LISTE DES CONVERSATIONS ====== */}
+      <div className="w-full md:w-1/3 border-r border-gray-200 flex flex-col">
 
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 h-[calc(100vh-280px)]">
-        <div className="flex h-full">
-          {/* Conversations List */}
-          <div className="w-1/3 border-r border-gray-200 flex flex-col">
-            {/* Filters */}
-            <div className="p-4 border-b border-gray-200">
-              <div className="relative mb-3">
-                <input
-                  type="text"
-                  placeholder="Rechercher une conversation..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                />
-                <MagnifyingGlassIcon className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
-              </div>
-              <select
-                value={filterStatus}
-                onChange={(e) => setFilterStatus(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+        {/* Header */}
+        <div className="p-4 border-b border-gray-200">
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              <BuildingOfficeIcon className="h-5 w-5 text-blue-600" />
+              <h2 className="text-lg font-semibold text-gray-900">Messagerie</h2>
+            </div>
+            {/* ✅ BOUTON NOUVELLE CONVERSATION */}
+            <button
+              onClick={() => setShowNewModal(true)}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors"
+            >
+              <PlusCircleIcon className="h-4 w-4" />
+              Nouveau
+            </button>
+          </div>
+
+          {/* Recherche */}
+          <div className="relative">
+            <MagnifyingGlassIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <input
+              type="text"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder="Rechercher..."
+              className="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            />
+          </div>
+
+          {/* Onglets filtre */}
+          <div className="mt-3 flex space-x-1 border-b border-gray-100 overflow-x-auto">
+            {[
+              { key: 'tous',     label: 'Tous' },
+              { key: 'medecins', label: 'Médecins' },
+              { key: 'patients', label: 'Patients' },
+              { key: 'non-lus',  label: 'Non lus' },
+            ].map(tab => (
+              <button
+                key={tab.key}
+                onClick={() => setActiveTab(tab.key)}
+                className={`whitespace-nowrap px-3 py-2 text-xs font-medium transition-colors ${
+                  activeTab === tab.key
+                    ? 'border-b-2 border-blue-500 text-blue-600'
+                    : 'text-gray-500 hover:text-gray-700'
+                }`}
               >
-                <option value="all">Tous les statuts</option>
-                <option value="active">Actives</option>
-                <option value="pending">En attente</option>
-                <option value="resolved">Résolues</option>
-              </select>
-            </div>
+                {tab.label}
+              </button>
+            ))}
+          </div>
+        </div>
 
-            {/* Conversations */}
-            <div className="flex-1 overflow-y-auto">
-              {filteredConversations.map((conversation) => (
-                <div
-                  key={conversation.id}
-                  onClick={() => {
-                    setSelectedConversation(conversation);
-                    markAsRead(conversation.id);
-                  }}
-                  className={`p-4 border-b border-gray-200 hover:bg-gray-50 cursor-pointer ${
-                    selectedConversation?.id === conversation.id ? 'bg-blue-50' : ''
-                  }`}
-                >
-                  <div className="flex items-start space-x-3">
-                    <div className="h-10 w-10 bg-gray-300 rounded-full flex items-center justify-center flex-shrink-0">
-                      <UserCircleIcon className="h-8 w-8 text-gray-600" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between">
-                        <p className="text-sm font-medium text-gray-900 truncate">
-                          {conversation.patient.name}
-                        </p>
-                        <span className="text-xs text-gray-500">{conversation.lastMessageTime}</span>
-                      </div>
-                      <p className="text-sm text-gray-600 truncate">{conversation.doctor}</p>
-                      <p className="text-sm text-gray-500 truncate mt-1">{conversation.lastMessage}</p>
-                      <div className="flex items-center justify-between mt-2">
-                        {getStatusBadge(conversation.status)}
-                        {getPriorityBadge(conversation.priority)}
-                        {conversation.unreadCount > 0 && (
-                          <span className="inline-flex items-center justify-center h-5 w-5 text-xs font-bold text-white bg-blue-600 rounded-full">
-                            {conversation.unreadCount}
-                          </span>
-                        )}
-                      </div>
-                    </div>
+        {/* Liste */}
+        <div className="flex-1 overflow-y-auto">
+          {loadingList ? (
+            <div className="p-4 space-y-4 animate-pulse">
+              {[1,2,3].map(i => (
+                <div key={i} className="flex items-center gap-3">
+                  <div className="h-10 w-10 bg-gray-200 rounded-full flex-shrink-0"></div>
+                  <div className="flex-1">
+                    <div className="h-3 bg-gray-200 rounded w-28 mb-2"></div>
+                    <div className="h-3 bg-gray-100 rounded w-40"></div>
                   </div>
                 </div>
               ))}
             </div>
-          </div>
-
-          {/* Chat Area */}
-          <div className="flex-1 flex flex-col">
-            {selectedConversation ? (
-              <>
-                {/* Chat Header */}
-                <div className="p-4 border-b border-gray-200">
+          ) : filteredConversations.length === 0 ? (
+            <div className="text-center py-12 px-4">
+              <EnvelopeIcon className="mx-auto h-12 w-12 text-gray-300 mb-3" />
+              <p className="text-sm font-medium text-gray-900">Aucune conversation</p>
+              <p className="text-xs text-gray-500 mt-1">
+                {conversations.length === 0
+                  ? 'Démarrez une conversation avec vos médecins ou patients.'
+                  : 'Aucune conversation ne correspond aux filtres.'}
+              </p>
+              <button
+                onClick={() => setShowNewModal(true)}
+                className="mt-3 inline-flex items-center gap-1 text-sm text-blue-600 hover:text-blue-700 font-medium"
+              >
+                <PlusCircleIcon className="h-4 w-4" />
+                Démarrer une conversation
+              </button>
+            </div>
+          ) : (
+            <ul className="divide-y divide-gray-100">
+              {filteredConversations.map((conv) => (
+                <li
+                  key={conv.id}
+                  onClick={() => setSelectedId(conv.id)}
+                  className={`px-4 py-3 hover:bg-gray-50 cursor-pointer transition-colors ${
+                    selectedId === conv.id ? 'bg-blue-50 border-l-2 border-blue-500' : ''
+                  }`}
+                >
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-3">
-                      <div className="h-10 w-10 bg-gray-300 rounded-full flex items-center justify-center">
-                        <UserCircleIcon className="h-8 w-8 text-gray-600" />
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0 overflow-hidden">
+                        {conv.other_participant_avatar ? (
+                          <img src={conv.other_participant_avatar}
+                            className="h-10 w-10 rounded-full object-cover" alt="" />
+                        ) : (
+                          <span className="text-blue-700 font-semibold text-sm">
+                            {initials(conv.other_participant_name)}
+                          </span>
+                        )}
                       </div>
-                      <div>
-                        <p className="text-lg font-medium text-gray-900">
-                          {selectedConversation.patient.name}
-                        </p>
-                        <p className="text-sm text-gray-600">
-                          {selectedConversation.doctor} - {selectedConversation.service}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <button className="p-2 text-gray-600 hover:text-gray-800">
-                        <PhoneIcon className="h-5 w-5" />
-                      </button>
-                      <button className="p-2 text-gray-600 hover:text-gray-800">
-                        <VideoCameraIcon className="h-5 w-5" />
-                      </button>
-                      <button className="p-2 text-gray-600 hover:text-gray-800">
-                        <EllipsisHorizontalIcon className="h-5 w-5" />
-                      </button>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Messages */}
-                <div className="flex-1 overflow-y-auto p-4 space-y-4">
-                  {messages.map((message) => (
-                    <div
-                      key={message.id}
-                      className={`flex ${message.sender === 'doctor' ? 'justify-end' : 'justify-start'}`}
-                    >
-                      <div
-                        className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
-                          message.sender === 'doctor'
-                            ? 'bg-blue-600 text-white'
-                            : 'bg-gray-100 text-gray-900'
-                        }`}
-                      >
-                        <p className="text-sm">{message.content}</p>
-                        <p className={`text-xs mt-1 ${
-                          message.sender === 'doctor' ? 'text-blue-100' : 'text-gray-500'
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-1.5">
+                          <p className="text-sm font-medium text-gray-900 truncate">
+                            {conv.other_participant_name}
+                          </p>
+                          {roleBadge(conv.other_participant_role)}
+                        </div>
+                        <p className={`text-xs truncate ${
+                          conv.unread_count > 0 ? 'font-semibold text-gray-900' : 'text-gray-500'
                         }`}>
-                          {message.timestamp}
+                          {conv.last_message_text || 'Aucun message'}
                         </p>
                       </div>
                     </div>
-                  ))}
-                </div>
-
-                {/* Message Input */}
-                <div className="p-4 border-t border-gray-200">
-                  <div className="flex items-center space-x-2">
-                    <button className="p-2 text-gray-600 hover:text-gray-800">
-                      <PaperClipIcon className="h-5 w-5" />
-                    </button>
-                    <input
-                      type="text"
-                      value={newMessage}
-                      onChange={(e) => setNewMessage(e.target.value)}
-                      onKeyPress={(e) => e.key === 'Enter' && sendMessage()}
-                      placeholder="Tapez votre message..."
-                      className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    />
-                    <button
-                      onClick={sendMessage}
-                      disabled={isLoading || !newMessage.trim()}
-                      className="p-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
-                    >
-                      <PaperAirplaneIcon className="h-5 w-5" />
-                    </button>
+                    <div className="flex flex-col items-end flex-shrink-0 ml-2">
+                      <span className="text-xs text-gray-400">{formatDate(conv.last_message_time)}</span>
+                      {conv.unread_count > 0 && (
+                        <span className="mt-1 h-5 w-5 rounded-full bg-blue-600 text-white text-xs flex items-center justify-center">
+                          {conv.unread_count}
+                        </span>
+                      )}
+                    </div>
                   </div>
-                </div>
-              </>
-            ) : (
-              <div className="flex-1 flex items-center justify-center">
-                <div className="text-center">
-                  <ChatBubbleLeftRightIcon className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                  <p className="text-gray-600">Sélectionnez une conversation pour commencer</p>
-                </div>
-              </div>
-            )}
-          </div>
+                </li>
+              ))}
+            </ul>
+          )}
         </div>
       </div>
+
+      {/* ====== ZONE MESSAGERIE ====== */}
+      {selectedId ? (
+        loadingActive ? (
+          <div className="hidden md:flex flex-1 items-center justify-center">
+            <div className="animate-spin h-6 w-6 border-2 border-blue-500 border-t-transparent rounded-full"></div>
+          </div>
+        ) : activeConversation ? (
+          <div className="hidden md:flex md:flex-col flex-1">
+
+            {/* En-tête conversation */}
+            <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between bg-white">
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center overflow-hidden">
+                  {activeConversation.other_participant_avatar ? (
+                    <img src={activeConversation.other_participant_avatar}
+                      className="h-10 w-10 object-cover" alt="" />
+                  ) : (
+                    <span className="text-blue-700 font-semibold text-sm">
+                      {initials(activeConversation.other_participant_name)}
+                    </span>
+                  )}
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-base font-semibold text-gray-900">
+                      {activeConversation.other_participant_name}
+                    </h3>
+                    {roleBadge(activeConversation.other_participant_role)}
+                  </div>
+                  <p className="text-xs text-gray-500">
+                    {otherTyping
+                      ? <span className="text-blue-500">en train d'écrire...</span>
+                      : activeConversation.other_participant_specialty || (wsConnected ? 'En ligne' : '')}
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <button className="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100">
+                  <ArchiveBoxIcon className="h-5 w-5" />
+                </button>
+                <button className="p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50">
+                  <TrashIcon className="h-5 w-5" />
+                </button>
+              </div>
+            </div>
+
+            {/* Messages */}
+            <div className="flex-1 p-6 overflow-y-auto bg-gray-50 space-y-3">
+              {activeConversation.messages?.length > 0 ? (
+                activeConversation.messages.map((msg) => (
+                  <div key={msg.id} className={`flex ${msg.is_mine ? 'justify-end' : 'justify-start'}`}>
+                    <div className={`max-w-xs lg:max-w-md xl:max-w-lg rounded-xl px-4 py-2.5 ${
+                      msg.is_mine
+                        ? 'bg-blue-600 text-white rounded-br-none'
+                        : 'bg-white text-gray-800 border border-gray-200 rounded-bl-none shadow-sm'
+                    }`}>
+                      <p className="text-sm leading-relaxed">{msg.content}</p>
+                      <div className={`mt-1 flex items-center gap-1 ${
+                        msg.is_mine ? 'justify-end text-blue-200' : 'text-gray-400'
+                      }`}>
+                        <span className="text-xs">{formatMsgTime(msg.created_at)}</span>
+                        {msg.is_mine && (
+                          msg.is_read
+                            ? <CheckCircleIcon className="h-3 w-3" />
+                            : <ClockIcon className="h-3 w-3" />
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="flex flex-col items-center justify-center h-full py-16">
+                  <EnvelopeIcon className="h-16 w-16 text-gray-200 mb-4" />
+                  <p className="text-gray-500 text-sm">Aucun message</p>
+                  <p className="text-gray-400 text-xs mt-1">
+                    Envoyez votre premier message à {activeConversation.other_participant_name}
+                  </p>
+                </div>
+              )}
+              <div ref={messagesEndRef} />
+            </div>
+
+            {/* Saisie */}
+            <div className="px-6 py-4 border-t border-gray-200 bg-white">
+              <form onSubmit={handleSendMessage} className="flex items-center gap-3">
+                <button type="button" className="text-gray-400 hover:text-gray-600 flex-shrink-0">
+                  <PaperClipIcon className="h-5 w-5" />
+                </button>
+                <input
+                  type="text"
+                  value={newMessage}
+                  onChange={(e) => handleTyping(e.target.value)}
+                  placeholder="Écrivez votre message..."
+                  className="flex-1 px-4 py-2 border border-gray-300 rounded-full text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                />
+                <button
+                  type="submit"
+                  disabled={!newMessage.trim()}
+                  className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-full hover:bg-blue-700 disabled:opacity-50 transition-colors flex-shrink-0"
+                >
+                  <PaperAirplaneIcon className="h-4 w-4" />
+                  Envoyer
+                </button>
+              </form>
+            </div>
+          </div>
+        ) : (
+          <div className="hidden md:flex flex-1 items-center justify-center bg-gray-50">
+            <p className="text-sm text-gray-500">Conversation introuvable.</p>
+          </div>
+        )
+      ) : (
+        <div className="hidden md:flex flex-1 items-center justify-center bg-gray-50">
+          <div className="text-center max-w-xs">
+            <div className="h-16 w-16 rounded-full bg-blue-100 flex items-center justify-center mx-auto mb-4">
+              <BuildingOfficeIcon className="h-8 w-8 text-blue-600" />
+            </div>
+            <h3 className="text-lg font-semibold text-gray-900">Messagerie hôpital</h3>
+            <p className="text-sm text-gray-500 mt-2">
+              Communiquez avec vos médecins et patients depuis un seul endroit.
+            </p>
+            <button
+              onClick={() => setShowNewModal(true)}
+              className="mt-4 inline-flex items-center gap-2 px-5 py-2.5 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors"
+            >
+              <PlusCircleIcon className="h-4 w-4" />
+              Nouvelle conversation
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ====== MODAL NOUVELLE CONVERSATION ====== */}
+      {showNewModal && (
+        <NewConversationModal
+          onClose={() => setShowNewModal(false)}
+          onConversationCreated={handleConversationCreated}
+        />
+      )}
     </div>
   );
 };
