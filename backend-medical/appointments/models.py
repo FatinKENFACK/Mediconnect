@@ -20,7 +20,7 @@ class Appointment(models.Model):
         related_name='appointments'
     )
 
-    # ✅ Lien vers le vrai médecin
+    #  Lien vers le vrai médecin
     doctor = models.ForeignKey(
         'accounts.Doctor',
         on_delete=models.SET_NULL,
@@ -38,6 +38,32 @@ class Appointment(models.Model):
     reason = models.TextField()
     status = models.CharField(max_length=20, choices=STATUT_CHOICES, default='pending')
     created_at = models.DateTimeField(auto_now_add=True)
+
+    # ============================================================
+    # CHAMPS APPEL VIDÉO / AUDIO (Jitsi Meet)
+    # ============================================================
+    CALL_TYPE_CHOICES = [
+        ('video', 'Vidéo'),
+        ('audio', 'Audio'),
+    ]
+    CALL_STATUS_CHOICES = [
+        ('none', 'Aucun appel'),
+        ('waiting', 'En attente que le médecin démarre'),
+        ('ongoing', 'Appel en cours'),
+        ('ended', 'Appel terminé'),
+    ]
+
+    call_type = models.CharField(
+        max_length=10, choices=CALL_TYPE_CHOICES,
+        null=True, blank=True,
+        help_text="Vidéo ou audio, uniquement si type='video' (consultation en ligne)"
+    )
+    call_status = models.CharField(
+        max_length=10, choices=CALL_STATUS_CHOICES, default='none'
+    )
+    call_room_name = models.CharField(max_length=100, blank=True, null=True)
+    call_started_at = models.DateTimeField(null=True, blank=True)
+    call_ended_at = models.DateTimeField(null=True, blank=True)
 
     class Meta:
         ordering = ['date', 'time']

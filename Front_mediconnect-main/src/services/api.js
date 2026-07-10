@@ -916,6 +916,31 @@ const getChatSocketUrl = (conversationId) => {
 };
 
 
+// ================= APPELS VIDÉO/AUDIO (Jitsi) =================
+
+const startCall = async (appointmentId, callType) => {
+  return await request(`/appointments/${appointmentId}/call/start/`, {
+    method: 'POST',
+    body: JSON.stringify({ call_type: callType }),
+  });
+};
+
+const getCallStatus = async (appointmentId) => {
+  return await request(`/appointments/${appointmentId}/call/status/`);
+};
+
+const endCall = async (appointmentId) => {
+  return await request(`/appointments/${appointmentId}/call/end/`, {
+    method: 'POST',
+  });
+};
+
+const getNotificationSocketUrl = () => {
+  const token = getAccessToken();
+  return `ws://localhost:8000/ws/notifications/?token=${token}`;
+};
+
+
 
 // ================= EXPORT =================
 
@@ -1050,7 +1075,13 @@ const api = {
   getAvailableContacts,
   getChatSocketUrl,
 
-  updateHospitalDoctorStatus
+  updateHospitalDoctorStatus,
+
+// appel video et audio
+  startCall,
+  getCallStatus,
+  endCall,
+  getNotificationSocketUrl,
 };
 
 export default api;

@@ -15,12 +15,16 @@ class AppointmentSerializer(serializers.ModelSerializer):
     class Meta:
         model = Appointment
         fields = [
-        'id', 'doctor', 'patient_name', 'doctor_full_name',
-        'doctor_specialization', 'doctor_name', 'doctor_specialty',
-        'date', 'time', 'type', 'reason', 'status', 'created_at'
-    ]
-        read_only_fields = ['id', 'status', 'created_at']
-
+            'id', 'doctor', 'patient_name', 'doctor_full_name',
+            'doctor_specialization', 'doctor_name', 'doctor_specialty',
+            'date', 'time', 'type', 'reason', 'status', 'created_at',
+            'call_type', 'call_status', 'call_room_name',
+            'call_started_at', 'call_ended_at',
+        ]
+        read_only_fields = [
+            'id', 'status', 'created_at',
+            'call_status', 'call_room_name', 'call_started_at', 'call_ended_at',
+        ]
     def get_patient_name(self, obj):
         return f"{obj.patient.first_name} {obj.patient.last_name}"
 

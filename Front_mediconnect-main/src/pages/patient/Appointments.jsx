@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import {
   CalendarIcon, ClockIcon, UserCircleIcon,
   MagnifyingGlassIcon, PlusIcon, TrashIcon,
@@ -13,6 +13,7 @@ const Appointments = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [search, setSearch] = useState('');
+  const navigate = useNavigate();
 
   useEffect(() => {
     const fetchAppointments = async () => {
@@ -39,6 +40,20 @@ const Appointments = () => {
     } catch (err) {
       alert('Erreur lors de l\'annulation.');
     }
+  };
+
+  // ============================================================
+  // Rejoindre la consultation vidéo/audio
+  // Emmène le patient vers la salle d'attente (CallRoom).
+  // Si le médecin n'a pas encore démarré, le patient patiente
+  // là-bas et sera automatiquement connecté dès que ce sera prêt.
+  // ============================================================
+  const handleJoinCall = (rdv) => {
+    navigate(`/patient/consultation-video/${rdv.id}`, {
+      state: {
+        otherPartyName: rdv.doctor_full_name || rdv.doctor_name || 'Médecin',
+      },
+    });
   };
 
   const getStatusLabel = (status) => {
@@ -205,6 +220,16 @@ const Appointments = () => {
                       </div>
 
                       <div className="flex items-center gap-2">
+                        {/* Rejoindre la consultation en ligne (vidéo/audio), uniquement si confirmé */}
+                        {rdv.type === 'video' && rdv.status === 'confirmed' && (
+                          <button
+                            onClick={() => handleJoinCall(rdv)}
+                            className="inline-flex items-center px-3 py-1.5 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-purple-600 hover:bg-purple-700"
+                          >
+                            <VideoCameraIcon className="-ml-0.5 mr-2 h-4 w-4" />
+                            Rejoindre la consultation
+                          </button>
+                        )}
                         {(rdv.status === 'pending' || rdv.status === 'confirmed') && (
                           <button
                             onClick={() => handleCancel(rdv.id)}

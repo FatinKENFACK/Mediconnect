@@ -1,6 +1,6 @@
 # Implémentation des User Stories - Patient
 
-## ✅ User Stories Implémentées
+##  User Stories Implémentées
 
 ### 1. Création de compte
 - **Page**: `/src/pages/public/Inscription.jsx`

@@ -13,7 +13,7 @@ import DoctorRegister from './pages/public/DoctorRegister';
 import Register from './pages/public/Register';
 import NotFound from './pages/public/NotFound';
 import Help from './pages/patient/Help';
-
+import CallRoom from './pages/shared/CallRoom';
 // Layouts
 import PatientLayout from './layouts/PatientLayout';
 
@@ -23,7 +23,6 @@ import Appointments from './pages/patient/Appointments';
 import NewAppointment from './pages/patient/NewAppointment_Enhanced';
 import MedicalRecords from './pages/patient/MedicalRecords';
 import Documents from './pages/patient/Documents';
-import VideoConsultation from './pages/patient/VideoConsultation';
 import Messages from './pages/patient/Messages';
 import SearchDoctors from './pages/patient/SearchDoctors';
 import SearchHospitals from './pages/patient/SearchHospitals';
@@ -119,7 +118,6 @@ function App() {
             <Route path="rendez-vous/nouveau" element={<NewAppointment />} />
             <Route path="dossiers-medicaux" element={<MedicalRecords />} />
             <Route path="documents" element={<Documents />} />
-            <Route path="consultation-video" element={<VideoConsultation />} />
             <Route path="messages" element={<Messages />} />
             <Route path="messages/:conversationId" element={<Messages />} />
             <Route path="recherche-medecins" element={<SearchDoctors />} />
@@ -130,6 +128,7 @@ function App() {
             <Route path="documents/nouveau" element={<NewDocument />} />
             <Route path="profil" element={<Profile />} />
             <Route path="aide" element={<Help />} />
+            <Route path="consultation-video/:appointmentId" element={<CallRoom />} />
           </Route>
 
           {/* Routes protégées - Espace hôpital */}
@@ -192,6 +191,7 @@ function App() {
             <Route path="creer-patient" element={<CreatePatient />} />
             <Route path="statistiques" element={<DoctorStatistics />} />
             <Route path="parametres" element={<ParametresDoctor />} />
+            <Route path="consultations/:appointmentId/appel" element={<CallRoom />} />
           </Route>
 
           {/* Routes protégées - Espace admin */}

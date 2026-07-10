@@ -18,6 +18,9 @@ from .views import (
     DoctorStatsView,
 )
 
+from .call_views import StartCallView, CallStatusView, EndCallView
+
+
 urlpatterns = [
     path('', AppointmentListCreateView.as_view(), name='appointment-list'),
     path('<int:pk>/', AppointmentDetailView.as_view(), name='appointment-detail'),
@@ -42,4 +45,8 @@ urlpatterns = [
     path('doctor/history/', DoctorConsultationHistoryView.as_view(), name='doctor-history'),
     path('doctor/stats/',   DoctorStatsView.as_view(), name='doctor-stats'),
 
+    path('<int:pk>/call/start/', StartCallView.as_view(), name='call-start'),
+    path('<int:pk>/call/status/', CallStatusView.as_view(), name='call-status'),
+    path('<int:pk>/call/end/', EndCallView.as_view(), name='call-end'),
 ]
+

@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import {
   VideoCameraIcon, UserCircleIcon, ClockIcon, CalendarIcon,
   CheckCircleIcon, XCircleIcon, ClockIcon as ClockIconSolid,
-  PlusIcon, MagnifyingGlassIcon
+  PlusIcon, MagnifyingGlassIcon, PhoneIcon
 } from '@heroicons/react/24/outline';
 import api from '../../services/api';
 
@@ -14,6 +14,8 @@ const ConsultationsDoctor = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('tous');
   const [dateFilter, setDateFilter] = useState('toutes');
+  const [startingCallId, setStartingCallId] = useState(null); // évite le double-clic
+  const navigate = useNavigate();
 
   useEffect(() => {
     api.getDoctorAppointments()
@@ -70,14 +72,15 @@ const ConsultationsDoctor = () => {
     }
   };
 
-  const handleStart = async (id) => {
+  // Confirme le rendez-vous (ne démarre pas encore l'appel)
+  const handleConfirm = async (id) => {
     try {
       await api.updateAppointmentStatus(id, 'confirmed');
       setConsultations(prev =>
         prev.map(c => c.id === id ? { ...c, status: 'confirmed' } : c)
       );
     } catch {
-      alert('Erreur lors du démarrage de la consultation.');
+      alert('Erreur lors de la confirmation de la consultation.');
     }
   };
 
@@ -101,6 +104,30 @@ const ConsultationsDoctor = () => {
       );
     } catch {
       alert('Erreur lors de l\'annulation.');
+    }
+  };
+
+  // ============================================================
+  // Démarre réellement l'appel Jitsi (vidéo ou audio) et redirige
+  // le médecin vers la salle d'appel. Le patient est notifié en
+  // temps réel dès que la room est créée côté serveur.
+  // ============================================================
+  const handleStartCall = async (consultation, callType) => {
+    if (startingCallId) return; // évite le double-clic pendant la requête
+    setStartingCallId(consultation.id);
+    try {
+      const data = await api.startCall(consultation.id, callType);
+      navigate(`/medecin/consultations/${consultation.id}/appel`, {
+        state: {
+          roomName: data.room_name,
+          callType: data.call_type,
+          otherPartyName: consultation.patient_name,
+        },
+      });
+    } catch (err) {
+      alert(err.message || "Erreur lors du démarrage de l'appel.");
+    } finally {
+      setStartingCallId(null);
     }
   };
 
@@ -231,13 +258,13 @@ const ConsultationsDoctor = () => {
                 </div>
 
                 {/* Actions */}
-                <div className="mt-3 flex justify-end space-x-3">
+                <div className="mt-3 flex justify-end flex-wrap gap-3">
                   {c.status === 'pending' && (
                     <>
-                      <button onClick={() => handleStart(c.id)}
+                      <button onClick={() => handleConfirm(c.id)}
                         className="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700">
-                        <VideoCameraIcon className="h-3 w-3 mr-1" />
-                        Démarrer
+                        <CheckCircleIcon className="h-3 w-3 mr-1" />
+                        Confirmer
                       </button>
                       <button onClick={() => handleCancel(c.id)}
                         className="inline-flex items-center px-3 py-1.5 border border-gray-300 shadow-sm text-xs font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
@@ -245,13 +272,38 @@ const ConsultationsDoctor = () => {
                       </button>
                     </>
                   )}
+
                   {c.status === 'confirmed' && (
-                    <button onClick={() => handleComplete(c.id)}
-                      className="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700">
-                      <CheckCircleIcon className="h-3 w-3 mr-1" />
-                      Marquer terminée
-                    </button>
+                    <>
+                      {/* Démarrage réel de l'appel — uniquement pour les consultations en ligne */}
+                      {c.type === 'video' && (
+                        <>
+                          <button
+                            onClick={() => handleStartCall(c, 'video')}
+                            disabled={startingCallId === c.id}
+                            className="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md shadow-sm text-white bg-purple-600 hover:bg-purple-700 disabled:opacity-50"
+                          >
+                            <VideoCameraIcon className="h-3 w-3 mr-1" />
+                            {startingCallId === c.id ? 'Démarrage...' : 'Appel vidéo'}
+                          </button>
+                          <button
+                            onClick={() => handleStartCall(c, 'audio')}
+                            disabled={startingCallId === c.id}
+                            className="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50"
+                          >
+                            <PhoneIcon className="h-3 w-3 mr-1" />
+                            {startingCallId === c.id ? 'Démarrage...' : 'Appel audio'}
+                          </button>
+                        </>
+                      )}
+                      <button onClick={() => handleComplete(c.id)}
+                        className="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700">
+                        <CheckCircleIcon className="h-3 w-3 mr-1" />
+                        Marquer terminée
+                      </button>
+                    </>
                   )}
+
                   <Link to={`/medecin/consultations/${c.id}`}
                     className="inline-flex items-center px-3 py-1.5 border border-gray-300 shadow-sm text-xs font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
                     Voir les détails

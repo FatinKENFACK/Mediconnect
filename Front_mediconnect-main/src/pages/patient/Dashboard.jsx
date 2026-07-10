@@ -16,7 +16,7 @@ import api from '../../services/api';
 const quickActions = [
   { id: 1, title: 'Prendre RDV', description: 'Nouvelle consultation', icon: CalendarIcon, iconColor: 'text-blue-600', bgColor: 'bg-blue-50', link: '/patient/rendez-vous/nouveau' },
   { id: 2, title: 'Rechercher médecin', description: 'Par spécialité', icon: UserGroupIcon, iconColor: 'text-emerald-600', bgColor: 'bg-emerald-50', link: '/patient/recherche-medecins' },
-  { id: 3, title: 'Consultation vidéo', description: 'Démarrer une visio', icon: VideoCameraIcon, iconColor: 'text-purple-600', bgColor: 'bg-purple-50', link: '/patient/consultation-video' },
+  { id: 3, title: 'Mes rendez-vous', description: 'Rejoindre une consultation', icon: VideoCameraIcon, iconColor: 'text-purple-600', bgColor: 'bg-purple-50', link: '/patient/rendez-vous' },
   { id: 4, title: 'Dossier médical', description: 'Historique santé', icon: DocumentArrowDownIcon, iconColor: 'text-amber-600', bgColor: 'bg-amber-50', link: '/patient/dossiers-medicaux' },
   { id: 5, title: 'Messagerie', description: 'Messages médecins', icon: ChatBubbleLeftRightIcon, iconColor: 'text-red-600', bgColor: 'bg-red-50', link: '/patient/messages' },
   { id: 6, title: 'Hôpitaux', description: 'Proches de moi', icon: BuildingOfficeIcon, iconColor: 'text-indigo-600', bgColor: 'bg-indigo-50', link: '/patient/recherche-hopitaux' },
