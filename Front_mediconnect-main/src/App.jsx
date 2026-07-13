@@ -19,6 +19,7 @@ import PatientLayout from './layouts/PatientLayout';
 
 // Pages patient
 import Dashboard from './pages/patient/Dashboard';
+import OnlineConsultations from './pages/patient/OnlineConsultations';
 import Appointments from './pages/patient/Appointments';
 import NewAppointment from './pages/patient/NewAppointment_Enhanced';
 import MedicalRecords from './pages/patient/MedicalRecords';
@@ -103,7 +104,6 @@ function App() {
           <Route path="/aide" element={<Help />} />
           <Route path="/inscription-hopital" element={<HospitalRegistration />} />
           <Route path="/inscription-medecin" element={<DoctorRegister />} />
-          <Route path="*" element={<NotFound />} />
 
           {/* Routes protégées - Espace patient */}
           {/* <Route path="/patient" element={
@@ -128,6 +128,7 @@ function App() {
             <Route path="documents/nouveau" element={<NewDocument />} />
             <Route path="profil" element={<Profile />} />
             <Route path="aide" element={<Help />} />
+            <Route path="consultation-video" element={<OnlineConsultations />} />
             <Route path="consultation-video/:appointmentId" element={<CallRoom />} />
           </Route>
 
@@ -214,7 +215,6 @@ function App() {
             <Route path="parametres" element={<Settings />} />
             <Route path="avis" element={<ReviewManagement />} />
           </Route>
-          <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </AuthProvider>
     </Router>

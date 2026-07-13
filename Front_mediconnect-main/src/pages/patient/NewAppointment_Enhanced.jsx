@@ -10,7 +10,8 @@ import {
   MapPinIcon,
   CheckCircleIcon,
   ChevronRightIcon,
-  InformationCircleIcon
+  InformationCircleIcon,
+  PhoneIcon
 } from '@heroicons/react/24/outline';
 
 const timeSlots = [
@@ -25,6 +26,8 @@ const NewAppointment = () => {
   const [selectedDate, setSelectedDate] = useState('');
   const [selectedTime, setSelectedTime] = useState('');
   const [appointmentType, setAppointmentType] = useState('');
+  // Préférence indicative du patient — le médecin décide au final au moment de démarrer l'appel
+  const [preferredCallType, setPreferredCallType] = useState('video');
   const [reason, setReason] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -71,6 +74,8 @@ const NewAppointment = () => {
         time: selectedTime + ':00',
         type: appointmentType,
         reason: reason || 'Non précisé',
+        // Uniquement pertinent pour les consultations en ligne — préférence indicative
+        preferred_call_type: appointmentType === 'video' ? preferredCallType : null,
     });
     navigate('/patient/rendez-vous');
   } catch (err) {
@@ -283,11 +288,49 @@ return (
                         <VideoCameraIcon className={`h-6 w-6 ${appointmentType === 'video' ? 'text-blue-600' : 'text-gray-600'}`} />
                       </div>
                       <div>
-                        <h4 className="font-semibold text-gray-900">Consultation vidéo</h4>
+                        <h4 className="font-semibold text-gray-900">Consultation en ligne</h4>
                         <p className="text-sm text-gray-600 mt-1">En ligne, depuis chez vous</p>
                       </div>
                     </div>
                   </button>
+
+                  {/* Préférence vidéo/audio — visible uniquement pour une consultation en ligne */}
+                  {appointmentType === 'video' && (
+                    <div className="pl-4 border-l-2 border-blue-200 space-y-3">
+                      <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">
+                        Format préféré (indicatif)
+                      </p>
+                      <div className="grid grid-cols-2 gap-3">
+                        <button
+                          type="button"
+                          onClick={() => setPreferredCallType('video')}
+                          className={`flex items-center justify-center gap-2 py-3 px-3 rounded-lg border-2 text-sm font-medium transition-colors ${
+                            preferredCallType === 'video'
+                              ? 'border-purple-500 bg-purple-50 text-purple-700'
+                              : 'border-gray-200 text-gray-600 hover:border-gray-300'
+                          }`}
+                        >
+                          <VideoCameraIcon className="h-4 w-4" />
+                          Vidéo
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setPreferredCallType('audio')}
+                          className={`flex items-center justify-center gap-2 py-3 px-3 rounded-lg border-2 text-sm font-medium transition-colors ${
+                            preferredCallType === 'audio'
+                              ? 'border-indigo-500 bg-indigo-50 text-indigo-700'
+                              : 'border-gray-200 text-gray-600 hover:border-gray-300'
+                          }`}
+                        >
+                          <PhoneIcon className="h-4 w-4" />
+                          Audio
+                        </button>
+                      </div>
+                      <p className="text-xs text-gray-400">
+                        Le médecin confirmera le format exact au moment de démarrer l'appel.
+                      </p>
+                    </div>
+                  )}
 
                   <button type="button" onClick={() => setAppointmentType('in-person')}
                     className={`w-full p-6 rounded-xl border-2 text-left transition-all duration-300 ${appointmentType === 'in-person' ? 'border-blue-500 bg-blue-50' : 'border-gray-100 hover:border-blue-300'
@@ -380,9 +423,21 @@ return (
                         : <MapPinIcon className="h-5 w-5 mr-3 text-blue-500" />
                       }
                       <p className="font-medium">
-                        {appointmentType === 'video' ? 'Consultation vidéo' : 'Consultation en cabinet'}
+                        {appointmentType === 'video' ? 'Consultation en ligne' : 'Consultation en cabinet'}
                       </p>
                     </div>
+                    {appointmentType === 'video' && (
+                      <div className="flex items-center text-gray-600 pl-8">
+                        {preferredCallType === 'video'
+                          ? <VideoCameraIcon className="h-4 w-4 mr-2 text-purple-500" />
+                          : <PhoneIcon className="h-4 w-4 mr-2 text-indigo-500" />
+                        }
+                        <p className="text-sm">
+                          Préférence : {preferredCallType === 'video' ? 'Vidéo' : 'Audio'}
+                          <span className="text-gray-400"> (à confirmer par le médecin)</span>
+                        </p>
+                      </div>
+                    )}
                     <div className="pt-4 border-t border-blue-100 flex justify-between">
                       <span className="text-gray-600">Frais</span>
                       <span className="font-semibold text-blue-600">{selectedDoctor?.consultationFee}</span>
