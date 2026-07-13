@@ -20,6 +20,7 @@ class AppointmentSerializer(serializers.ModelSerializer):
             'date', 'time', 'type', 'reason', 'status', 'created_at',
             'call_type', 'call_status', 'call_room_name',
             'call_started_at', 'call_ended_at',
+            'preferred_call_type',
         ]
         read_only_fields = [
             'id', 'status', 'created_at',

@@ -7,6 +7,7 @@ class Appointment(models.Model):
         ('in-person', 'En cabinet'),
         ('presentiel', 'Présentiel'),
     ]
+    
     STATUT_CHOICES = [
         ('pending', 'En attente'),
         ('confirmed', 'Confirmé'),
@@ -52,6 +53,16 @@ class Appointment(models.Model):
         ('ongoing', 'Appel en cours'),
         ('ended', 'Appel terminé'),
     ]
+
+    PREFERRED_CALL_TYPE_CHOICES = [
+        ('video', 'Vidéo'),
+        ('audio', 'Audio'),
+    ]
+    preferred_call_type = models.CharField(
+        max_length=10, choices=PREFERRED_CALL_TYPE_CHOICES,
+        null=True, blank=True,
+        help_text="Préférence indicative du patient à la réservation — le médecin garde la main au moment de l'appel."
+    )
 
     call_type = models.CharField(
         max_length=10, choices=CALL_TYPE_CHOICES,
