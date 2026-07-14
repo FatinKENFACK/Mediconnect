@@ -940,6 +940,18 @@ const getNotificationSocketUrl = () => {
   return `ws://localhost:8000/ws/notifications/?token=${token}`;
 };
 
+// ================= VÉRIFICATION ANTI-FRAUDE (RDV présentiel) =================
+
+const verifyAppointmentToken = async (token) => {
+  return await request(`/appointments/verify/${token}/`);
+};
+
+const checkInAppointment = async (token) => {
+  return await request(`/appointments/verify/${token}/checkin/`, {
+    method: 'POST',
+  });
+};
+
 
 
 // ================= EXPORT =================
@@ -1082,6 +1094,10 @@ const api = {
   getCallStatus,
   endCall,
   getNotificationSocketUrl,
+
+  //VÉRIFICATION ANTI-FRAUDE (RDV présentiel)
+  verifyAppointmentToken,
+  checkInAppointment,
 };
 
 export default api;

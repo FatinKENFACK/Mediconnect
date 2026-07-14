@@ -26,7 +26,8 @@ import {
   ChevronDownIcon,
   MagnifyingGlassIcon,
   ChatBubbleLeftRightIcon,
-  QuestionMarkCircleIcon
+  QuestionMarkCircleIcon,
+  StarIcon,
 } from '@heroicons/react/24/outline';
 
 const AdminLayout = () => {
@@ -66,6 +67,12 @@ const AdminLayout = () => {
       href: '/admin/paiements',
       icon: CurrencyDollarIcon,
       current: location.pathname === '/admin/paiements'
+    },
+    {
+      name: 'Avis',                             
+      href: '/admin/avis',
+      icon: StarIcon,
+      current: location.pathname === '/admin/avis'
     },
     {
       name: 'Rapports',

@@ -1,5 +1,6 @@
 from django.db import models
 from django.conf import settings
+import uuid
 
 class Appointment(models.Model):
     TYPE_CHOICES = [
@@ -75,6 +76,26 @@ class Appointment(models.Model):
     call_room_name = models.CharField(max_length=100, blank=True, null=True)
     call_started_at = models.DateTimeField(null=True, blank=True)
     call_ended_at = models.DateTimeField(null=True, blank=True)
+
+
+    # ============================================================
+    # ANTI-FRAUDE PRÉSENTIEL — vérification à l'arrivée
+    # ============================================================
+    verification_token = models.UUIDField(
+        default=uuid.uuid4, editable=False, unique=True,
+        help_text="Token unique encodé dans le QR code du patient — jamais affiché en clair modifiable."
+    )
+    checked_in_at = models.DateTimeField(
+        null=True, blank=True,
+        help_text="Horodatage de la confirmation d'arrivée par le personnel hospitalier."
+    )
+    checked_in_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name='checkins_performed',
+        help_text="Membre du personnel (médecin ou compte hôpital) ayant confirmé l'arrivée."
+    )
 
     class Meta:
         ordering = ['date', 'time']

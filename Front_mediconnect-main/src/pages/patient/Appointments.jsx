@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import AppointmentQRModal from '../../components/AppointmentQRModal';
 import {
   CalendarIcon, ClockIcon, UserCircleIcon,
   MagnifyingGlassIcon, PlusIcon, TrashIcon,
@@ -10,6 +11,7 @@ import api from '../../services/api';
 const Appointments = () => {
   const [activeTab, setActiveTab] = useState('upcoming');
   const [appointments, setAppointments] = useState([]);
+  const [qrModalAppointment, setQrModalAppointment] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [search, setSearch] = useState('');
@@ -55,6 +57,8 @@ const Appointments = () => {
       },
     });
   };
+
+
 
   const getStatusLabel = (status) => {
     const labels = {
@@ -136,8 +140,8 @@ const Appointments = () => {
           <button
             onClick={() => setActiveTab('upcoming')}
             className={`${activeTab === 'upcoming'
-                ? 'border-teal-500 text-teal-600'
-                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              ? 'border-teal-500 text-teal-600'
+              : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
               } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm`}
           >
             À venir
@@ -145,8 +149,8 @@ const Appointments = () => {
           <button
             onClick={() => setActiveTab('past')}
             className={`${activeTab === 'past'
-                ? 'border-teal-500 text-teal-600'
-                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              ? 'border-teal-500 text-teal-600'
+              : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
               } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm`}
           >
             Passés / Annulés
@@ -230,6 +234,14 @@ const Appointments = () => {
                             Rejoindre la consultation
                           </button>
                         )}
+                        {rdv.type !== 'video' && rdv.status === 'confirmed' && (
+                          <button
+                            onClick={() => setQrModalAppointment(rdv)}
+                            className="inline-flex items-center px-3 py-1.5 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-teal-600 hover:bg-teal-700"
+                          >
+                            Mon code d'accès
+                          </button>
+                        )}
                         {(rdv.status === 'pending' || rdv.status === 'confirmed') && (
                           <button
                             onClick={() => handleCancel(rdv.id)}
@@ -295,6 +307,10 @@ const Appointments = () => {
               </li>
             )}
           </ul>
+          <AppointmentQRModal
+            appointment={qrModalAppointment}
+            onClose={() => setQrModalAppointment(null)}
+          />
         </div>
       )}
     </div>

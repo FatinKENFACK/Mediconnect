@@ -5,6 +5,7 @@ import { AuthProvider, useAuth } from './contexts/AuthContext';
 import Layout from './components/layout/Layout';
 import PrivateRoute from './components/auth/PrivateRoute';
 
+
 // Import des pages publiques
 import LandingPage from './pages/public/LandingPage';
 import Login from './pages/public/Login';
@@ -53,6 +54,9 @@ import EditService from './pages/hospital/EditService';
 import AddAvailability from './pages/hospital/AddAvailability';
 import SubscriptionPlans from './pages/hospital/SubscriptionPlans';
 import SubscriptionPayment from './pages/hospital/SubscriptionPayment';
+import CheckInScanner from './pages/hospital/CheckInScanner';
+
+
 
 // Layout et pages médecin
 import DoctorLayout from './layouts/DoctorLayout';
@@ -158,6 +162,7 @@ function App() {
             <Route path="ajouter-disponibilite" element={<AddAvailability />} />
             <Route path="abonnement/plans" element={<SubscriptionPlans />} />
             <Route path="abonnement/paiement" element={<SubscriptionPayment />} />
+            <Route path="verification-arrivee" element={<CheckInScanner />} />
           </Route>
 
           {/* Routes protégées - Espace médecin */}

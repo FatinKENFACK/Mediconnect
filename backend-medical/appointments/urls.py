@@ -17,7 +17,7 @@ from .views import (
     DoctorConsultationHistoryView,
     DoctorStatsView,
 )
-
+from .verification_views import AppointmentVerifyView, AppointmentCheckInView
 from .call_views import StartCallView, CallStatusView, EndCallView
 
 
@@ -48,5 +48,8 @@ urlpatterns = [
     path('<int:pk>/call/start/', StartCallView.as_view(), name='call-start'),
     path('<int:pk>/call/status/', CallStatusView.as_view(), name='call-status'),
     path('<int:pk>/call/end/', EndCallView.as_view(), name='call-end'),
+
+    path('verify/<uuid:token>/', AppointmentVerifyView.as_view(), name='appointment-verify'),
+    path('verify/<uuid:token>/checkin/', AppointmentCheckInView.as_view(), name='appointment-checkin'),
 ]
 

@@ -10,6 +10,7 @@ import {
   VideoCameraIcon, BellIcon, MagnifyingGlassIcon,
   Bars3Icon, XMarkIcon, ChevronDownIcon,
   ArrowRightOnRectangleIcon, HeartIcon,
+  QrCodeIcon,
 } from '@heroicons/react/24/outline';
 import api from '../services/api';
 
@@ -103,6 +104,12 @@ const HospitalLayout = () => {
       badge: stats.pending_appointments > 0 ? String(stats.pending_appointments) : null,
     },
     {
+      name: 'Vérification arrivée',        // ← nouvelle entrée
+      href: '/hopital/verification-arrivee',
+      icon: QrCodeIcon,
+      current: isActive('/hopital/verification-arrivee'),
+    },
+    {
       name: 'Dossiers patients',
       href: '/hopital/dossiers-patients',
       icon: FolderIcon,
@@ -179,8 +186,8 @@ const HospitalLayout = () => {
             to={item.href}
             onClick={() => isMobile && setSidebarOpen(false)}
             className={`group flex items-center px-2 py-2 text-sm font-medium rounded-md transition-all duration-200 ${item.current
-                ? 'bg-blue-50 text-blue-700 border-r-2 border-blue-700'
-                : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+              ? 'bg-blue-50 text-blue-700 border-r-2 border-blue-700'
+              : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
               } ${collapsed && !isMobile ? 'justify-center' : ''}`}
           >
             <item.icon

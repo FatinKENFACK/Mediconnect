@@ -137,16 +137,37 @@ class HospitalRegisterSerializer(serializers.Serializer):
 # Pour afficher les informations de l'hôpital
 # ============================================================
 class HospitalProfileSerializer(serializers.ModelSerializer):
+    # Nombre de médecins rattachés à cet hôpital
+    total_doctors = serializers.SerializerMethodField()
+    # Statut actif/inactif du compte utilisateur lié (pour les badges Actif/Suspendu)
+    user_is_active = serializers.SerializerMethodField()
+    # Plan d'abonnement actuel (pour le badge Basic/Professional/Enterprise)
+    subscription_plan = serializers.SerializerMethodField()
+
     class Meta:
         model = Hospital
         fields = [
-        'id', 'name', 'registration_number', 'registration_code', 'hospital_type',
-        'address', 'city', 'region', 'phone', 'email',
-        'website', 'is_verified', 'created_at'
+            'id', 'name', 'registration_number', 'registration_code', 'hospital_type',
+            'address', 'city', 'region', 'phone', 'email',
+            'website', 'is_verified', 'created_at',
+            'total_doctors', 'user_is_active', 'subscription_plan',
         ]
-        read_only_fields = ['id', 'is_verified', 'created_at', 'registration_number']
+        read_only_fields = [
+            'id', 'is_verified', 'created_at', 'registration_number',
+            'total_doctors', 'user_is_active', 'subscription_plan',
+        ]
 
-        
+    def get_total_doctors(self, obj):
+        return obj.doctors.count()
+
+    def get_user_is_active(self, obj):
+        return obj.user.is_active
+
+    def get_subscription_plan(self, obj):
+        try:
+            return obj.subscription.plan
+        except Exception:
+            return None  
 class DoctorProfileSerializer(serializers.ModelSerializer):
     from .models import Doctor
 

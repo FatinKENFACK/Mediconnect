@@ -19,12 +19,13 @@ class AppointmentSerializer(serializers.ModelSerializer):
             'doctor_specialization', 'doctor_name', 'doctor_specialty',
             'date', 'time', 'type', 'reason', 'status', 'created_at',
             'call_type', 'call_status', 'call_room_name',
-            'call_started_at', 'call_ended_at',
-            'preferred_call_type',
+            'call_started_at', 'call_ended_at', 'preferred_call_type',
+            'verification_token', 'checked_in_at',
         ]
         read_only_fields = [
             'id', 'status', 'created_at',
             'call_status', 'call_room_name', 'call_started_at', 'call_ended_at',
+            'verification_token', 'checked_in_at',
         ]
     def get_patient_name(self, obj):
         return f"{obj.patient.first_name} {obj.patient.last_name}"
