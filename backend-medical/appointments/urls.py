@@ -19,7 +19,10 @@ from .views import (
 )
 from .verification_views import AppointmentVerifyView, AppointmentCheckInView
 from .call_views import StartCallView, CallStatusView, EndCallView
-
+from .document_verification_views import DocumentVerifyView
+from .compte_rendu_pdf_views import PatientCompteRenduListView, CompteRenduPDFView
+from .prescription_pdf_views import PatientPrescriptionListView, PrescriptionPDFView
+from .alternative_doctors_view import AlternativeDoctorsView
 
 urlpatterns = [
     path('', AppointmentListCreateView.as_view(), name='appointment-list'),
@@ -51,5 +54,16 @@ urlpatterns = [
 
     path('verify/<uuid:token>/', AppointmentVerifyView.as_view(), name='appointment-verify'),
     path('verify/<uuid:token>/checkin/', AppointmentCheckInView.as_view(), name='appointment-checkin'),
+
+    path('verify/document/<uuid:token>/', DocumentVerifyView.as_view(), name='document-verify'),
+
+    path('patient/comptes-rendus/', PatientCompteRenduListView.as_view(), name='patient-comptes-rendus'),
+    path('comptes-rendus/<int:pk>/pdf/', CompteRenduPDFView.as_view(), name='compte-rendu-pdf'),
+
+        # Téléchargement des fichiers
+    path('patient/prescriptions/', PatientPrescriptionListView.as_view(), name='patient-prescriptions'),
+    path('prescriptions/<int:pk>/pdf/', PrescriptionPDFView.as_view(), name='prescription-pdf'),
+
+    path('<int:pk>/alternative-doctors/', AlternativeDoctorsView.as_view(), name='alternative-doctors'),
 ]
 

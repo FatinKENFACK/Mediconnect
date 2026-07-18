@@ -33,6 +33,8 @@ import Payment from './pages/patient/Payment';
 import Review from './pages/patient/Review';
 import NewDocument from './pages/patient/NewDocument';
 import Profile from './pages/patient/Profile';
+import MedicalBooklet from './pages/patient/MedicalBooklet';
+import MyPrescriptions from './pages/patient/MyPrescriptions';
 
 // Layout et pages hôpital
 import HospitalLayout from './layouts/HospitalLayout';
@@ -134,6 +136,8 @@ function App() {
             <Route path="aide" element={<Help />} />
             <Route path="consultation-video" element={<OnlineConsultations />} />
             <Route path="consultation-video/:appointmentId" element={<CallRoom />} />
+            <Route path="carnet-medical" element={<MedicalBooklet />} />
+            <Route path="ordonnances" element={<MyPrescriptions />} />
           </Route>
 
           {/* Routes protégées - Espace hôpital */}

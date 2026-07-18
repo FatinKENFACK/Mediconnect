@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, Fragment } from 'react';
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
 import GlobalSearchBar from '../components/GlobalSearchBar';
 import {
   HomeIcon,
@@ -30,7 +31,9 @@ import {
   BuildingOfficeIcon,
   StarIcon,
   CreditCardIcon,
-  MapPinIcon
+  MapPinIcon,
+  ClipboardDocumentCheckIcon,
+  ClipboardDocumentListIcon,
 } from '@heroicons/react/24/outline';
 import { useMediaQuery } from 'react-responsive';
 
@@ -38,6 +41,7 @@ const PatientLayout = () => {
   const [user, setUser] = useState(null);
   const location = useLocation();
   const navigate = useNavigate();
+  const { logout } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
@@ -185,6 +189,16 @@ const PatientLayout = () => {
       icon: DocumentTextIcon
     },
     {
+      name: 'Carnet médical',
+      href: '/patient/carnet-medical',
+      icon: ClipboardDocumentCheckIcon
+    },
+    {
+      name: 'Ordonnances',
+      href: '/patient/ordonnances',
+      icon: ClipboardDocumentListIcon,  // à ajouter à l'import @heroicons/react/24/outline
+    },
+    {
       name: 'Documents',
       href: '/patient/documents',
       icon: DocumentIcon
@@ -198,7 +212,7 @@ const PatientLayout = () => {
       name: 'Messagerie',
       href: '/patient/messages',
       icon: ChatBubbleLeftRightIcon,
-      badge: 3
+      //badge: 3
     },
     {
       name: 'Paiement',
@@ -241,8 +255,8 @@ const PatientLayout = () => {
             <button
               onClick={() => toggleSubmenu(item.name)}
               className={`group flex items-center w-full px-2 py-2 text-sm font-medium rounded-md ${isItemActive
-                  ? 'bg-primary-50 text-primary-600'
-                  : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                ? 'bg-primary-50 text-primary-600'
+                : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
                 }`}
             >
               <item.icon
@@ -274,8 +288,8 @@ const PatientLayout = () => {
                     <Link
                       to={subItem.href}
                       className={`group flex items-center px-2 py-2 text-sm font-medium rounded-md ${isActive(subItem.href, true)
-                          ? 'bg-gray-100 text-primary-600'
-                          : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                        ? 'bg-gray-100 text-primary-600'
+                        : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
                         }`}
                     >
                       <subItem.icon
@@ -296,8 +310,8 @@ const PatientLayout = () => {
           <Link
             to={item.href}
             className={`group flex items-center px-2 py-2 text-sm font-medium rounded-md ${isActive(item.href, item.exact)
-                ? 'bg-primary-50 text-primary-600'
-                : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+              ? 'bg-primary-50 text-primary-600'
+              : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
               }`}
           >
             <item.icon
@@ -424,7 +438,7 @@ const PatientLayout = () => {
                 type="button"
                 className={`ml-auto flex-shrink-0 p-1 rounded-full text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 ${collapsed ? 'mx-auto' : ''
                   }`}
-                onClick={() => navigate('/logout')}
+                onClick={() => logout()}
                 title="Déconnexion"
               >
                 <ArrowLeftOnRectangleIcon className="h-6 w-6" aria-hidden="true" />
@@ -625,12 +639,7 @@ const PatientLayout = () => {
                       </Link>
                       <div className="border-t border-gray-100 my-1"></div>
                       <button
-                        onClick={() => {
-                          // Logique de déconnexion
-                          console.log('Déconnexion');
-                          // Rediriger vers la page de connexion
-                          navigate('/connexion');
-                        }}
+                        onClick={() => logout()}
                         className="w-full text-left flex items-center px-4 py-2 text-sm text-red-600 hover:bg-red-50"
                       >
                         <ArrowLeftOnRectangleIcon className="mr-3 h-5 w-5 text-red-500" />

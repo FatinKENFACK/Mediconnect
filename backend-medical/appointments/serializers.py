@@ -73,9 +73,9 @@ class PrescriptionSerializer(serializers.ModelSerializer):
         model = Prescription
         fields = [
             'id', 'doctor', 'patient', 'patient_name', 'doctor_name',
-            'date', 'status', 'notes', 'items', 'created_at', 'updated_at'
+            'date', 'status', 'notes', 'items', 'created_at', 'updated_at', 'verification_token',
         ]
-        read_only_fields = ['id', 'doctor', 'created_at', 'updated_at']
+        read_only_fields = ['id', 'doctor', 'created_at', 'updated_at', 'verification_token',]
 
     def get_patient_name(self, obj):
         return f"{obj.patient.first_name} {obj.patient.last_name}"
@@ -116,9 +116,9 @@ class CompteRenduSerializer(serializers.ModelSerializer):
             'id', 'doctor', 'patient', 'patient_name', 'doctor_name',
             'date', 'type', 'type_label', 'motif', 'observations',
             'diagnostic', 'traitement', 'recommandations',
-            'created_at', 'updated_at'
+            'created_at', 'updated_at', 'verification_token',
         ]
-        read_only_fields = ['id', 'doctor', 'created_at', 'updated_at']
+        read_only_fields = ['id', 'doctor', 'created_at', 'updated_at', 'verification_token',]
 
     def get_patient_name(self, obj):
         return f"{obj.patient.first_name} {obj.patient.last_name}"

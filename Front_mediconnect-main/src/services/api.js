@@ -953,6 +953,53 @@ const checkInAppointment = async (token) => {
 };
 
 
+// ================= CARNET MÉDICAL (comptes-rendus patient) =================
+
+const getMyComptesRendus = async () => {
+  return await request('/appointments/patient/comptes-rendus/');
+};
+
+const downloadCompteRenduPDF = async (id, patientLastName = 'document') => {
+  const token = getAccessToken();
+  const response = await fetch(`${BASE_URL}/appointments/comptes-rendus/${id}/pdf/`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!response.ok) throw new Error('Erreur lors du téléchargement du carnet médical.');
+  const blob = await response.blob();
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `carnet_medical_${patientLastName}.pdf`;
+  a.click();
+  URL.revokeObjectURL(url);
+};
+
+// ================= ORDONNANCES (patient) =================
+
+const getMyPrescriptions = async () => {
+  return await request('/appointments/patient/prescriptions/');
+};
+
+const downloadPrescriptionPDF = async (id, patientLastName = 'ordonnance') => {
+  const token = getAccessToken();
+  const response = await fetch(`${BASE_URL}/appointments/prescriptions/${id}/pdf/`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!response.ok) throw new Error('Erreur lors du téléchargement de l\'ordonnance.');
+  const blob = await response.blob();
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `ordonnance_${patientLastName}.pdf`;
+  a.click();
+  URL.revokeObjectURL(url);
+};
+
+const getAlternativeDoctors = async (appointmentId) => {
+  return await request(`/appointments/${appointmentId}/alternative-doctors/`);
+};
+
+
 
 // ================= EXPORT =================
 
@@ -1098,6 +1145,17 @@ const api = {
   //VÉRIFICATION ANTI-FRAUDE (RDV présentiel)
   verifyAppointmentToken,
   checkInAppointment,
+
+  //Compte-rendu avec le code qr
+  getMyComptesRendus,
+  downloadCompteRenduPDF,
+
+  //Ordonnances patient
+  getMyPrescriptions,
+  downloadPrescriptionPDF,
+
+  // choix d'un autre médecin en cas d'indisponibilité
+  getAlternativeDoctors,
 };
 
 export default api;

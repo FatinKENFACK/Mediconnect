@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import api from '../../services/api';
-import { 
+import {
   StarIcon,
   CheckCircleIcon,
   ExclamationTriangleIcon,
@@ -26,27 +26,27 @@ export default function DoctorReviews() {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
 
- useEffect(() => {
+  useEffect(() => {
     const loadReviews = async () => {
       try {
         const data = await api.getDoctorMyReviews();
         const list = data.reviews || [];
         const mapped = list.map(r => ({
-          id:               r.id,
-          patientName:      r.patient_name,
-          patientEmail:     '',
-          patientAvatar:    '/api/placeholder/40/40',
+          id: r.id,
+          patientName: r.patient_name,
+          patientEmail: '',
+          patientAvatar: '/api/placeholder/40/40',
           consultationDate: r.created_at?.split('T')[0] || '',
           consultationType: 'presentiel',
-          rating:           r.rating,
-          title:            '',
-          content:          r.comment,
-          categories:       {},
-          helpful:          0,
-          status:           r.status === 'approved' ? 'published' : r.status,
-          createdAt:        r.created_at,
-          reply:            null,
-          reported:         false,
+          rating: r.rating,
+          title: '',
+          content: r.comment,
+          categories: {},
+          helpful: 0,
+          status: r.status === 'approved' ? 'published' : r.status,
+          createdAt: r.created_at,
+          reply: null,
+          reported: false,
         }));
         setReviews(mapped);
         setFilteredReviews(mapped);
@@ -62,7 +62,7 @@ export default function DoctorReviews() {
 
     // Filter by search query
     if (searchQuery) {
-      filtered = filtered.filter(review => 
+      filtered = filtered.filter(review =>
         review.patientName.toLowerCase().includes(searchQuery.toLowerCase()) ||
         review.content.toLowerCase().includes(searchQuery.toLowerCase()) ||
         review.title.toLowerCase().includes(searchQuery.toLowerCase())
@@ -86,9 +86,8 @@ export default function DoctorReviews() {
     return Array.from({ length: 5 }, (_, i) => (
       <StarIcon
         key={i}
-        className={`h-4 w-4 ${
-          i < rating ? 'text-yellow-400' : 'text-gray-300'
-        }`}
+        className={`h-4 w-4 ${i < rating ? 'text-yellow-400' : 'text-gray-300'
+          }`}
       />
     ));
   };
@@ -109,9 +108,8 @@ export default function DoctorReviews() {
           {Array.from({ length: 5 }, (_, i) => (
             <StarIcon
               key={i}
-              className={`h-3 w-3 ${
-                i < rating ? 'text-yellow-400' : 'text-gray-300'
-              }`}
+              className={`h-3 w-3 ${i < rating ? 'text-yellow-400' : 'text-gray-300'
+                }`}
             />
           ))}
           <span className="ml-1 text-xs text-gray-600">({rating}/5)</span>
@@ -124,23 +122,23 @@ export default function DoctorReviews() {
     if (!replyText.trim()) return;
 
     setIsSubmitting(true);
-    
+
     // Simuler l'envoi de la réponse
     setTimeout(() => {
-      setReviews(prev => 
-        prev.map(review => 
-          review.id === reviewId 
+      setReviews(prev =>
+        prev.map(review =>
+          review.id === reviewId
             ? {
-                ...review,
-                reply: {
-                  content: replyText,
-                  createdAt: new Date().toISOString()
-                }
+              ...review,
+              reply: {
+                content: replyText,
+                createdAt: new Date().toISOString()
               }
+            }
             : review
         )
       );
-      
+
       setReplyText('');
       setSelectedReview(null);
       setIsSubmitting(false);
@@ -148,16 +146,16 @@ export default function DoctorReviews() {
   };
 
   const handleStatusUpdate = (reviewId, newStatus) => {
-    setReviews(prev => 
-      prev.map(review => 
+    setReviews(prev =>
+      prev.map(review =>
         review.id === reviewId ? { ...review, status: newStatus } : review
       )
     );
   };
 
   const handleReport = (reviewId) => {
-    setReviews(prev => 
-      prev.map(review => 
+    setReviews(prev =>
+      prev.map(review =>
         review.id === reviewId ? { ...review, reported: true } : review
       )
     );
@@ -194,7 +192,7 @@ export default function DoctorReviews() {
               <h1 className="text-2xl font-bold text-gray-900">Avis des patients</h1>
               <p className="text-gray-600 mt-1">Gérez et répondez aux évaluations des patients</p>
             </div>
-            
+
             <div className="flex items-center space-x-6">
               <div className="text-center">
                 <p className="text-2xl font-bold text-gray-900">{stats.averageRating}</p>
@@ -221,7 +219,7 @@ export default function DoctorReviews() {
               </div>
             </div>
           </div>
-          
+
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
             <div className="flex items-center">
               <div className="p-3 bg-yellow-100 rounded-lg">
@@ -233,7 +231,7 @@ export default function DoctorReviews() {
               </div>
             </div>
           </div>
-          
+
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
             <div className="flex items-center">
               <div className="p-3 bg-blue-100 rounded-lg">
@@ -245,7 +243,7 @@ export default function DoctorReviews() {
               </div>
             </div>
           </div>
-          
+
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
             <div className="flex items-center">
               <div className="p-3 bg-red-100 rounded-lg">
@@ -275,7 +273,7 @@ export default function DoctorReviews() {
                 />
               </div>
             </div>
-            
+
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Note</label>
               <select
@@ -291,7 +289,7 @@ export default function DoctorReviews() {
                 <option value="1">1 étoile</option>
               </select>
             </div>
-            
+
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Statut</label>
               <select
@@ -331,51 +329,49 @@ export default function DoctorReviews() {
                       <p className="text-sm text-gray-600">{review.patientEmail}</p>
                     </div>
                   </div>
-                  
+
                   <div className="flex items-center space-x-3">
                     <span className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(review.status)}`}>
                       {review.status === 'published' && 'Publié'}
                       {review.status === 'pending' && 'En attente'}
                       {review.status === 'rejected' && 'Rejeté'}
                     </span>
-                    
+
                     <button
                       onClick={() => handleReport(review.id)}
-                      className={`p-2 rounded-lg transition-colors ${
-                        review.reported 
-                          ? 'bg-gray-100 text-gray-400 cursor-not-allowed' 
+                      className={`p-2 rounded-lg transition-colors ${review.reported
+                          ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
                           : 'text-gray-400 hover:text-red-600 hover:bg-red-50'
-                      }`}
+                        }`}
                       disabled={review.reported}
                     >
                       <FlagIcon className="h-4 w-4" />
                     </button>
                   </div>
                 </div>
-                
+
                 <div className="mb-4">
                   <div className="flex items-center space-x-2 mb-2">
                     <div className="flex items-center">
                       {renderStars(review.rating)}
                       <span className="ml-2 font-medium text-gray-900">{review.rating}/5</span>
                     </div>
-                    
+
                     <span className="text-sm text-gray-500">
                       Consultation du {new Date(review.consultationDate).toLocaleDateString('fr-FR')}
                     </span>
-                    
-                    <span className={`px-2 py-1 text-xs rounded-full ${
-                      review.consultationType === 'video' 
-                        ? 'bg-blue-100 text-blue-800' 
+
+                    <span className={`px-2 py-1 text-xs rounded-full ${review.consultationType === 'video'
+                        ? 'bg-blue-100 text-blue-800'
                         : 'bg-green-100 text-green-800'
-                    }`}>
+                      }`}>
                       {review.consultationType === 'video' ? 'Visioconférence' : 'Présentiel'}
                     </span>
                   </div>
-                  
+
                   <h4 className="font-medium text-gray-900 mb-2">{review.title}</h4>
                   <p className="text-gray-700 mb-3">{review.content}</p>
-                  
+
                   {/* Category Ratings */}
                   <div className="bg-gray-50 rounded-lg p-4 mb-3">
                     <h5 className="text-sm font-medium text-gray-700 mb-2">Évaluation détaillée</h5>
@@ -388,7 +384,7 @@ export default function DoctorReviews() {
                     </div>
                   </div>
                 </div>
-                
+
                 {/* Reply Section */}
                 {review.reply ? (
                   <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-3">
@@ -445,7 +441,7 @@ export default function DoctorReviews() {
                     Répondre à cet avis
                   </button>
                 )}
-                
+
                 {/* Actions for pending reviews */}
                 {review.status === 'pending' && (
                   <div className="flex justify-end space-x-2 mt-3">
@@ -465,14 +461,14 @@ export default function DoctorReviews() {
                     </button>
                   </div>
                 )}
-                
+
                 <div className="flex items-center justify-between mt-4 pt-4 border-t border-gray-200">
                   <div className="flex items-center space-x-4 text-sm text-gray-500">
                     <span>{review.helpful} personnes ont trouvé cet avis utile</span>
                     <span>•</span>
                     <span>Consultation #{review.consultationId}</span>
                   </div>
-                  
+
                   {review.reported && (
                     <span className="text-sm text-red-600 flex items-center">
                       <FlagIcon className="h-4 w-4 mr-1" />

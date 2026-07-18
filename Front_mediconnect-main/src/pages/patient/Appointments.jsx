@@ -5,10 +5,13 @@ import {
   CalendarIcon, ClockIcon, UserCircleIcon,
   MagnifyingGlassIcon, PlusIcon, TrashIcon,
   VideoCameraIcon, MapPinIcon, StarIcon,
+  ExclamationTriangleIcon,
 } from '@heroicons/react/24/outline';
 import api from '../../services/api';
+import AlternativeDoctorsModal from '../../components/AlternativeDoctorsModal';
 
 const Appointments = () => {
+  const [alternativesFor, setAlternativesFor] = useState(null);
   const [activeTab, setActiveTab] = useState('upcoming');
   const [appointments, setAppointments] = useState([]);
   const [qrModalAppointment, setQrModalAppointment] = useState(null);
@@ -58,7 +61,19 @@ const Appointments = () => {
     });
   };
 
+  // ============================================================
+  // Détection des RDV "en attente" depuis trop longtemps.
+  // Au-delà de PENDING_ALERT_THRESHOLD_DAYS jours sans confirmation
+  // du médecin, on propose au patient de voir des médecins alternatifs.
+  // ============================================================
+  const PENDING_ALERT_THRESHOLD_DAYS = 3;
 
+  const isStalePending = (rdv) => {
+    if (rdv.status !== 'pending') return false;
+    const createdAt = new Date(rdv.created_at).getTime();
+    const daysSince = (Date.now() - createdAt) / (1000 * 60 * 60 * 24);
+    return daysSince >= PENDING_ALERT_THRESHOLD_DAYS;
+  };
 
   const getStatusLabel = (status) => {
     const labels = {
@@ -219,6 +234,23 @@ const Appointments = () => {
                                 <span className="font-medium">Motif : </span>{rdv.reason}
                               </div>
                             )}
+
+                            {/* ⬇️ Alerte : RDV en attente depuis trop longtemps ⬇️ */}
+                            {isStalePending(rdv) && (
+                              <div className="mt-3 p-3 bg-amber-50 border border-amber-200 rounded-lg flex items-center justify-between gap-3 flex-wrap">
+                                <div className="flex items-center gap-2 text-amber-800 text-sm">
+                                  <ExclamationTriangleIcon className="h-4 w-4 flex-shrink-0" />
+                                  Ce médecin n'a pas encore confirmé votre rendez-vous.
+                                </div>
+                                <button
+                                  onClick={() => setAlternativesFor(rdv)}
+                                  className="px-3 py-1.5 bg-amber-600 text-white text-xs font-medium rounded-md hover:bg-amber-700"
+                                >
+                                  Voir des médecins disponibles
+                                </button>
+                              </div>
+                            )}
+                            {/* ⬆️ Fin de l'alerte ⬆️ */}
                           </div>
                         </div>
                       </div>
@@ -307,9 +339,15 @@ const Appointments = () => {
               </li>
             )}
           </ul>
+
           <AppointmentQRModal
             appointment={qrModalAppointment}
             onClose={() => setQrModalAppointment(null)}
+          />
+
+          <AlternativeDoctorsModal
+            appointment={alternativesFor}
+            onClose={() => setAlternativesFor(null)}
           />
         </div>
       )}

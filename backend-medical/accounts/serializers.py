@@ -135,14 +135,23 @@ class HospitalRegisterSerializer(serializers.Serializer):
 # ============================================================
 # SERIALIZER : Profil hôpital
 # Pour afficher les informations de l'hôpital
-# ============================================================
+# ============================================================ 
+
+# //////////////////////////////////////////////////
+
 class HospitalProfileSerializer(serializers.ModelSerializer):
-    # Nombre de médecins rattachés à cet hôpital
+   # Nombre de médecins rattachés à cet hôpital
     total_doctors = serializers.SerializerMethodField()
-    # Statut actif/inactif du compte utilisateur lié (pour les badges Actif/Suspendu)
+     # Statut actif/inactif du compte utilisateur lié (pour les badges Actif/Suspendu)
     user_is_active = serializers.SerializerMethodField()
-    # Plan d'abonnement actuel (pour le badge Basic/Professional/Enterprise)
+     # Plan d'abonnement actuel (pour le badge Basic/Professional/Enterprise)
     subscription_plan = serializers.SerializerMethodField()
+
+    # Nouveaux champs — données réelles pour la recherche publique d'hôpitaux
+    specialties = serializers.SerializerMethodField()
+    services_list = serializers.SerializerMethodField()
+    average_rating = serializers.SerializerMethodField()
+    total_reviews = serializers.SerializerMethodField()
 
     class Meta:
         model = Hospital
@@ -151,10 +160,12 @@ class HospitalProfileSerializer(serializers.ModelSerializer):
             'address', 'city', 'region', 'phone', 'email',
             'website', 'is_verified', 'created_at',
             'total_doctors', 'user_is_active', 'subscription_plan',
+            'specialties', 'services_list', 'average_rating', 'total_reviews',
         ]
         read_only_fields = [
             'id', 'is_verified', 'created_at', 'registration_number',
             'total_doctors', 'user_is_active', 'subscription_plan',
+            'specialties', 'services_list', 'average_rating', 'total_reviews',
         ]
 
     def get_total_doctors(self, obj):
@@ -167,7 +178,36 @@ class HospitalProfileSerializer(serializers.ModelSerializer):
         try:
             return obj.subscription.plan
         except Exception:
-            return None  
+            return None
+
+    def get_specialties(self, obj):
+        # Spécialisations distinctes des médecins réellement rattachés à cet hôpital
+        return list(
+            obj.doctors.exclude(specialization='')
+            .values_list('specialization', flat=True)
+            .distinct()
+        )
+
+    def get_services_list(self, obj):
+        # Services actifs réellement configurés par l'hôpital
+        return [
+            {'name': s.name, 'category': s.category}
+            for s in obj.services.filter(is_active=True)
+        ]
+
+    def get_average_rating(self, obj):
+        from reviews.models import Review
+        reviews = Review.objects.filter(doctor__hospital=obj, status='approved')
+        if reviews.exists():
+            return round(sum(r.rating for r in reviews) / reviews.count(), 1)
+        return None
+
+    def get_total_reviews(self, obj):
+        from reviews.models import Review
+        return Review.objects.filter(doctor__hospital=obj, status='approved').count()
+
+# ///////////////////////////////////////////////////////
+
 class DoctorProfileSerializer(serializers.ModelSerializer):
     from .models import Doctor
 

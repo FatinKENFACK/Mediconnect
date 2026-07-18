@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<style>
+    @page {
+        size: A4;
+        margin: 2cm 1.8cm;
+        @bottom-center {
+            content: "MediConnect — Document généré automatiquement";
+            font-size: 8px;
+            color: #9ca3af;
+        }
+    }
+    body {
+        font-family: 'DejaVu Sans', Arial, sans-serif;
+        color: #1f2937;
+        font-size: 12px;
+        line-height: 1.5;
+    }
+    .header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        border-bottom: 3px solid #0d9488;
+        padding-bottom: 12px;
+        margin-bottom: 20px;
+    }
+    .logo {
+        font-size: 22px;
+        font-weight: bold;
+        color: #0d9488;
+    }
+    .doc-title {
+        text-align: right;
+    }
+    .doc-title h1 {
+        font-size: 16px;
+        margin: 0;
+        color: #111827;
+    }
+    .doc-title p {
+        margin: 2px 0 0 0;
+        font-size: 11px;
+        color: #6b7280;
+    }
+    .info-grid {
+        display: flex;
+        gap: 20px;
+        margin-bottom: 20px;
+    }
+    .info-box {
+        flex: 1;
+        background: #f9fafb;
+        border-radius: 8px;
+        padding: 12px 16px;
+        border: 1px solid #e5e7eb;
+    }
+    .info-box h3 {
+        font-size: 10px;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: #6b7280;
+        margin: 0 0 6px 0;
+    }
+    .info-box p {
+        margin: 2px 0;
+        font-size: 12px;
+    }
+    .info-box .name {
+        font-size: 14px;
+        font-weight: bold;
+        color: #111827;
+    }
+    .section {
+        margin-bottom: 16px;
+    }
+    .section h3 {
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: #0d9488;
+        border-bottom: 1px solid #d1fae5;
+        padding-bottom: 4px;
+        margin-bottom: 6px;
+    }
+    .section p {
+        margin: 0;
+        white-space: pre-line;
+    }
+    .footer {
+        margin-top: 30px;
+        padding-top: 16px;
+        border-top: 1px solid #e5e7eb;
+        display: flex;
+        align-items: center;
+        gap: 16px;
+    }
+    .footer img {
+        width: 80px;
+        height: 80px;
+    }
+    .footer .verify-text {
+        font-size: 10px;
+        color: #6b7280;
+    }
+    .footer .verify-text strong {
+        color: #111827;
+        display: block;
+        margin-bottom: 4px;
+        font-size: 11px;
+    }
+    .token {
+        font-family: monospace;
+        background: #f3f4f6;
+        padding: 2px 6px;
+        border-radius: 4px;
+        font-size: 9px;
+    }
+</style>
+</head>
+<body>
+
+    <div class="header">
+        <div class="logo">MediConnect</div>
+        <div class="doc-title">
+            <h1>Carnet médical — Compte-rendu de consultation</h1>
+            <p>Document n° {{ compte_rendu.id }} • Émis le {{ compte_rendu.created_at|date:"d/m/Y" }}</p>
+        </div>
+    </div>
+
+    <div class="info-grid">
+        <div class="info-box">
+            <h3>Patient</h3>
+            <p class="name">{{ patient_name }}</p>
+            <p>{{ compte_rendu.patient.email }}</p>
+        </div>
+        <div class="info-box">
+            <h3>Médecin</h3>
+            <p class="name">Dr. {{ doctor_name }}</p>
+            <p>{{ compte_rendu.doctor.specialization }}</p>
+            <p>N° licence : {{ compte_rendu.doctor.license_number }}</p>
+        </div>
+        <div class="info-box">
+            <h3>Consultation</h3>
+            <p><strong>Date :</strong> {{ compte_rendu.date|date:"d/m/Y" }}</p>
+            <p><strong>Type :</strong> {{ compte_rendu.get_type_display }}</p>
+        </div>
+    </div>
+
+    <div class="section">
+        <h3>Motif de consultation</h3>
+        <p>{{ compte_rendu.motif }}</p>
+    </div>
+
+    {% if compte_rendu.observations %}
+    <div class="section">
+        <h3>Observations</h3>
+        <p>{{ compte_rendu.observations }}</p>
+    </div>
+    {% endif %}
+
+    {% if compte_rendu.diagnostic %}
+    <div class="section">
+        <h3>Diagnostic</h3>
+        <p>{{ compte_rendu.diagnostic }}</p>
+    </div>
+    {% endif %}
+
+    {% if compte_rendu.traitement %}
+    <div class="section">
+        <h3>Traitement</h3>
+        <p>{{ compte_rendu.traitement }}</p>
+    </div>
+    {% endif %}
+
+    {% if compte_rendu.recommandations %}
+    <div class="section">
+        <h3>Recommandations</h3>
+        <p>{{ compte_rendu.recommandations }}</p>
+    </div>
+    {% endif %}
+
+    <div class="footer">
+        <img src="data:image/png;base64,{{ qr_base64 }}" alt="QR code de vérification">
+        <div class="verify-text">
+            <strong>Document authentifié — vérifiable en ligne</strong>
+            Scannez ce QR code ou rendez-vous sur mediconnect.cm/verifier pour confirmer
+            l'authenticité de ce document auprès de nos serveurs.<br>
+            Code de référence : <span class="token">{{ compte_rendu.verification_token }}</span>
+        </div>
+    </div>
+
+</body>
+</html>

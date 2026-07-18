@@ -199,6 +199,7 @@ const DoctorLayout = () => {
         { name: 'Créer patient', href: '/medecin/creer-patient', icon: UserPlusIcon }
       ]
     },
+
     {
       name: 'Prescriptions',
       href: '/medecin/prescriptions',
@@ -209,16 +210,25 @@ const DoctorLayout = () => {
       ]
     },
     {
+      name: 'Comptes-rendus',                     // ← nouvelle entrée
+      href: '/medecin/comptes-rendus',
+      icon: DocumentTextIcon,
+      subItems: [
+        { name: 'Liste des comptes-rendus', href: '/medecin/comptes-rendus', icon: DocumentTextIcon },
+        { name: 'Nouveau compte-rendu', href: '/medecin/comptes-rendus/nouveau', icon: PlusIcon }
+      ]
+    },
+    {
       name: 'Avis patients',
       href: '/medecin/avis',
       icon: StarIcon,
-      badge: 3
+      //badge: 3
     },
     {
       name: 'Messagerie',
       href: '/medecin/messagerie',
       icon: ChatBubbleLeftRightIcon,
-      badge: 5
+      //badge: 5
     },
     {
       name: 'Historique',
@@ -439,7 +449,7 @@ const DoctorLayout = () => {
                 type="button"
                 className={`ml-auto flex-shrink-0 p-1 rounded-full text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 ${collapsed ? 'mx-auto' : ''
                   }`}
-                onClick={() => navigate('/logout')}
+                onClick={() => logout()}
                 title="Déconnexion"
               >
                 <ArrowLeftOnRectangleIcon className="h-6 w-6" aria-hidden="true" />
@@ -640,12 +650,7 @@ const DoctorLayout = () => {
                       </Link>
                       <div className="border-t border-gray-100 my-1"></div>
                       <button
-                        onClick={() => {
-                          // Logique de déconnexion
-                          console.log('Déconnexion');
-                          // Rediriger vers la page de connexion
-                          navigate('/connexion');
-                        }}
+                        onClick={() => logout()}
                         className="w-full text-left flex items-center px-4 py-2 text-sm text-red-600 hover:bg-red-50"
                       >
                         <ArrowLeftOnRectangleIcon className="mr-3 h-5 w-5 text-red-500" />

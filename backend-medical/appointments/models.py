@@ -179,6 +179,10 @@ class Prescription(models.Model):
     notes = models.TextField(blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+    verification_token = models.UUIDField(
+        default=uuid.uuid4, editable=False, unique=True,
+        help_text="Token unique pour vérification publique d'authenticité (QR code)."
+    )
 
     class Meta:
         ordering = ['-date', '-created_at']
@@ -232,6 +236,10 @@ class CompteRendu(models.Model):
     recommandations = models.TextField(blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+    verification_token = models.UUIDField(
+        default=uuid.uuid4, editable=False, unique=True,
+        help_text="Token unique pour vérification publique d'authenticité (QR code)."
+    )
 
     class Meta:
         ordering = ['-date', '-created_at']
