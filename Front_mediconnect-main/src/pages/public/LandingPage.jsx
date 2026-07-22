@@ -1,12 +1,12 @@
 import { useState, useEffect, createContext, useContext } from 'react'
 import { Link } from 'react-router-dom'
 import { motion, useScroll, useTransform, AnimatePresence } from 'framer-motion'
-import { 
-  FaSearch, 
-  FaCalendarCheck, 
-  FaChartLine, 
-  FaMapMarkerAlt, 
-  FaUserMd, 
+import {
+  FaSearch,
+  FaCalendarCheck,
+  FaChartLine,
+  FaMapMarkerAlt,
+  FaUserMd,
   FaHandshake,
   FaShieldAlt,
   FaClock,
@@ -50,6 +50,7 @@ import {
   FaTimes,
   FaBars
 } from 'react-icons/fa'
+import heroImage from '../../assets/images/hero-medical.jpg'
 
 // Context pour le thème et la langue
 const ThemeContext = createContext()
@@ -420,7 +421,7 @@ const LandingPage = () => {
   const [darkMode, setDarkMode] = useState(false)
   const [language, setLanguage] = useState('fr')
   const { scrollYProgress } = useScroll()
-  
+
   const t = translations[language]
 
   useEffect(() => {
@@ -584,7 +585,7 @@ const LandingPage = () => {
       <nav className={`fixed top-0 w-full z-50 transition-all duration-300 ${isScrolled ? (darkMode ? 'bg-gray-900/95 backdrop-blur-md shadow-lg' : 'bg-white/95 backdrop-blur-md shadow-lg') : 'bg-transparent'}`}>
         <div className="container mx-auto px-4 sm:px-6 py-4">
           <div className="flex items-center justify-between">
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
               className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-blue-800 dark:from-blue-400 dark:to-blue-600 bg-clip-text text-transparent cursor-pointer"
@@ -592,40 +593,40 @@ const LandingPage = () => {
             >
               MediConnect
             </motion.div>
-            
+
             <div className="hidden md:flex items-center space-x-6">
               {['benefits', 'features', 'how-it-works', 'pricing', 'coverage', 'resources', 'faq'].map((section) => (
-                <button 
+                <button
                   key={section}
-                  onClick={() => scrollToSection(section)} 
+                  onClick={() => scrollToSection(section)}
                   className={`transition-colors font-medium text-sm ${darkMode ? 'text-gray-300 hover:text-blue-400' : 'text-gray-700 hover:text-blue-600'}`}
                 >
                   {t.nav[section === 'how-it-works' ? 'howItWorks' : section]}
                 </button>
               ))}
             </div>
-            
+
             <div className="hidden md:flex items-center space-x-4">
-              <button 
+              <button
                 onClick={toggleTheme}
                 className={`p-2 rounded-lg transition-colors ${darkMode ? 'bg-gray-800 text-yellow-400 hover:bg-gray-700' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
               >
                 {darkMode ? <FaSun /> : <FaMoon />}
               </button>
-              <button 
+              <button
                 onClick={toggleLanguage}
                 className={`p-2 rounded-lg transition-colors flex items-center space-x-1 ${darkMode ? 'bg-gray-800 text-gray-300 hover:bg-gray-700' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
               >
                 <FaLanguage />
                 <span className="text-sm">{language === 'fr' ? 'FR' : 'EN'}</span>
               </button>
-              <Link 
+              <Link
                 to="/connexion"
                 className={`px-4 py-2 rounded-lg transition-all font-medium ${darkMode ? 'text-blue-400 border-2 border-blue-400 hover:bg-blue-400/10' : 'text-blue-600 border-2 border-blue-600 hover:bg-blue-50'}`}
               >
                 {t.nav.login}
               </Link>
-              <Link 
+              <Link
                 to="/inscription"
                 className="px-4 py-2 bg-gradient-to-r from-blue-600 to-blue-800 text-white rounded-lg hover:shadow-lg transition-all font-medium"
               >
@@ -635,19 +636,19 @@ const LandingPage = () => {
 
             {/* Mobile Menu Buttons */}
             <div className="flex items-center space-x-2 md:hidden">
-              <button 
+              <button
                 onClick={toggleTheme}
                 className={`p-2 rounded-lg transition-colors ${darkMode ? 'bg-gray-800 text-yellow-400' : 'bg-gray-100 text-gray-700'}`}
               >
                 {darkMode ? <FaSun /> : <FaMoon />}
               </button>
-              <button 
+              <button
                 onClick={toggleLanguage}
                 className={`p-2 rounded-lg transition-colors ${darkMode ? 'bg-gray-800 text-gray-300' : 'bg-gray-100 text-gray-700'}`}
               >
                 <FaLanguage />
               </button>
-              <button 
+              <button
                 onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
                 className={`p-2 rounded-lg transition-colors ${darkMode ? 'bg-gray-800 text-gray-300 hover:bg-gray-700' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
               >
@@ -671,7 +672,7 @@ const LandingPage = () => {
               className="fixed inset-0 bg-black/50 z-40 md:hidden"
               onClick={() => setIsMobileMenuOpen(false)}
             />
-            
+
             {/* Menu Panel - Depuis la gauche */}
             <motion.div
               variants={mobileMenuVariants}
@@ -707,7 +708,7 @@ const LandingPage = () => {
                       initial={{ opacity: 0, x: -20 }}
                       animate={{ opacity: 1, x: 0 }}
                       transition={{ delay: index * 0.05 }}
-                      onClick={() => scrollToSection(section)} 
+                      onClick={() => scrollToSection(section)}
                       className={`block w-full text-left px-6 py-4 transition-colors font-medium capitalize border-b ${darkMode ? 'text-gray-300 hover:text-blue-400 hover:bg-gray-800 border-gray-800' : 'text-gray-700 hover:text-blue-600 hover:bg-gray-50 border-gray-100'}`}
                     >
                       {t.nav[section === 'how-it-works' ? 'howItWorks' : section]}
@@ -724,13 +725,13 @@ const LandingPage = () => {
       <section id="hero" className="pt-28 pb-20 px-4 sm:px-6 overflow-hidden">
         <div className="container mx-auto">
           <div className="grid lg:grid-cols-2 gap-12 items-center">
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0, y: 50 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8 }}
               className="space-y-8"
             >
-              <motion.div 
+              <motion.div
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: 0.2 }}
@@ -747,11 +748,11 @@ const LandingPage = () => {
                 <br />
                 <span className={darkMode ? 'text-gray-200' : 'text-gray-800'}>{t.hero.title2}</span>
               </h1>
-              
+
               <p className={`text-lg sm:text-xl leading-relaxed ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>
                 {t.hero.description}
               </p>
-              
+
               <div className="flex flex-col sm:flex-row gap-4">
                 <Link
                   to="/inscription"
@@ -760,7 +761,7 @@ const LandingPage = () => {
                   <span>{t.hero.cta1}</span>
                   <FaArrowRight className="group-hover:translate-x-1 transition-transform" />
                 </Link>
-                <motion.button 
+                <motion.button
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                   onClick={() => scrollToSection('how-it-works')}
@@ -786,23 +787,23 @@ const LandingPage = () => {
                 ))}
               </div>
             </motion.div>
-            
-            <motion.div 
+
+            <motion.div
               initial={{ opacity: 0, x: 50 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.8, delay: 0.2 }}
               className="relative"
             >
               <div className="relative z-10">
-                <img 
-                  src="/api/placeholder/600/500" 
+                <img
+                  src={heroImage}
                   alt="Médecin remplaçant Cameroun"
                   className="rounded-2xl shadow-2xl w-full"
                 />
                 <div className="absolute inset-0 bg-gradient-to-tr from-blue-600/20 to-blue-800/20 rounded-2xl"></div>
               </div>
-              
-              <motion.div 
+
+              <motion.div
                 animate={{ y: [0, -15, 0] }}
                 transition={{ duration: 4, repeat: Infinity }}
                 className={`absolute -top-6 -right-6 p-4 rounded-xl shadow-xl z-20 ${darkMode ? 'bg-gray-800' : 'bg-white'}`}
@@ -818,7 +819,7 @@ const LandingPage = () => {
                 </div>
               </motion.div>
 
-              <motion.div 
+              <motion.div
                 animate={{ y: [0, -10, 0] }}
                 transition={{ duration: 3, repeat: Infinity, delay: 1 }}
                 className={`absolute -bottom-6 -left-6 p-4 rounded-xl shadow-xl z-20 ${darkMode ? 'bg-gray-800' : 'bg-white'}`}
@@ -841,7 +842,7 @@ const LandingPage = () => {
       {/* Benefits Section */}
       <section id="benefits" className={`py-20 px-4 sm:px-6 ${darkMode ? 'bg-gray-800' : 'bg-white'}`}>
         <div className="container mx-auto">
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
@@ -888,7 +889,7 @@ const LandingPage = () => {
       {/* Features Section */}
       <section id="features" className={`py-20 px-4 sm:px-6 ${darkMode ? 'bg-gray-900' : 'bg-gradient-to-br from-blue-50 to-blue-100'}`}>
         <div className="container mx-auto">
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
@@ -953,7 +954,7 @@ const LandingPage = () => {
       {/* How It Works Section */}
       <section id="how-it-works" className={`py-20 px-4 sm:px-6 ${darkMode ? 'bg-gray-800' : 'bg-white'}`}>
         <div className="container mx-auto">
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
@@ -1008,7 +1009,7 @@ const LandingPage = () => {
       {/* Differentiators Section */}
       <section className="py-20 px-4 sm:px-6 bg-gradient-to-r from-blue-600 to-blue-800">
         <div className="container mx-auto">
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
@@ -1043,7 +1044,7 @@ const LandingPage = () => {
       {/* Pricing Section */}
       <section id="pricing" className={`py-20 px-4 sm:px-6 ${darkMode ? 'bg-gray-800' : 'bg-white'}`}>
         <div className="container mx-auto">
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
@@ -1130,7 +1131,7 @@ const LandingPage = () => {
               <p className={`text-lg mb-8 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
                 {t.coverage.description}
               </p>
-              
+
               <div className="grid sm:grid-cols-2 gap-4">
                 {regions.slice(0, 8).map((region, index) => (
                   <motion.div
@@ -1189,7 +1190,7 @@ const LandingPage = () => {
       {/* Specialties Section */}
       <section className={`py-20 px-4 sm:px-6 ${darkMode ? 'bg-gray-800' : 'bg-white'}`}>
         <div className="container mx-auto">
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
@@ -1229,7 +1230,7 @@ const LandingPage = () => {
       {/* Partners Section */}
       <section className={`py-20 px-4 sm:px-6 ${darkMode ? 'bg-gray-900' : 'bg-gradient-to-br from-blue-50 to-blue-100'}`}>
         <div className="container mx-auto">
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
@@ -1274,7 +1275,7 @@ const LandingPage = () => {
       {/* Resources Section */}
       <section id="resources" className={`py-20 px-4 sm:px-6 ${darkMode ? 'bg-gray-800' : 'bg-white'}`}>
         <div className="container mx-auto">
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
@@ -1323,7 +1324,7 @@ const LandingPage = () => {
       {/* FAQ Section */}
       <section id="faq" className={`py-20 px-4 sm:px-6 ${darkMode ? 'bg-gray-900' : 'bg-gradient-to-br from-blue-50 to-blue-100'}`}>
         <div className="container mx-auto max-w-4xl">
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
@@ -1407,7 +1408,7 @@ const LandingPage = () => {
                 <span>{t.cta.button1}</span>
                 <FaArrowRight className="group-hover:translate-x-1 transition-transform" />
               </Link>
-              <motion.button 
+              <motion.button
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 className="px-8 py-4 border-2 border-white text-white rounded-xl font-semibold hover:bg-white/10 transition-colors"
@@ -1425,12 +1426,12 @@ const LandingPage = () => {
         {/* Background decoration */}
         <div className="absolute inset-0 bg-gradient-to-br from-blue-600/10 via-transparent to-purple-600/10"></div>
         <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-blue-500/50 to-transparent"></div>
-        
+
         <div className="container mx-auto px-4 sm:px-6 relative z-10">
           {/* Main Footer Content */}
           <div className="py-12 md:py-16">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-8 lg:gap-12">
-              
+
               {/* Column 1 - Brand & Description */}
               <div className="lg:col-span-2">
                 <div className="mb-6">
@@ -1443,30 +1444,30 @@ const LandingPage = () => {
                   {t.footer.description}
                 </p>
                 <div className="flex space-x-4 mb-6">
-                  <motion.a 
+                  <motion.a
                     whileHover={{ y: -3, scale: 1.05 }}
-                    href="#" 
+                    href="#"
                     className="w-10 h-10 rounded-full bg-gray-800 hover:bg-gradient-to-r hover:from-blue-500 hover:to-purple-500 flex items-center justify-center transition-all duration-300 group"
                   >
                     <FaFacebook className="text-gray-400 group-hover:text-white transition-colors" />
                   </motion.a>
-                  <motion.a 
+                  <motion.a
                     whileHover={{ y: -3, scale: 1.05 }}
-                    href="#" 
+                    href="#"
                     className="w-10 h-10 rounded-full bg-gray-800 hover:bg-gradient-to-r hover:from-blue-500 hover:to-purple-500 flex items-center justify-center transition-all duration-300 group"
                   >
                     <FaTwitter className="text-gray-400 group-hover:text-white transition-colors" />
                   </motion.a>
-                  <motion.a 
+                  <motion.a
                     whileHover={{ y: -3, scale: 1.05 }}
-                    href="#" 
+                    href="#"
                     className="w-10 h-10 rounded-full bg-gray-800 hover:bg-gradient-to-r hover:from-blue-500 hover:to-purple-500 flex items-center justify-center transition-all duration-300 group"
                   >
                     <FaLinkedin className="text-gray-400 group-hover:text-white transition-colors" />
                   </motion.a>
-                  <motion.a 
+                  <motion.a
                     whileHover={{ y: -3, scale: 1.05 }}
-                    href="#" 
+                    href="#"
                     className="w-10 h-10 rounded-full bg-gray-800 hover:bg-gradient-to-r hover:from-blue-500 hover:to-purple-500 flex items-center justify-center transition-all duration-300 group"
                   >
                     <FaInstagram className="text-gray-400 group-hover:text-white transition-colors" />
@@ -1494,11 +1495,11 @@ const LandingPage = () => {
                 <ul className="space-y-3">
                   {['benefits', 'features', 'how-it-works', 'pricing', 'coverage', 'faq'].map((link, index) => (
                     <li key={link}>
-                      <motion.button 
+                      <motion.button
                         initial={{ opacity: 0, x: -10 }}
                         animate={{ opacity: 1, x: 0 }}
                         transition={{ delay: index * 0.05 }}
-                        onClick={() => scrollToSection(link)} 
+                        onClick={() => scrollToSection(link)}
                         className="text-gray-400 hover:text-white transition-colors text-sm flex items-center space-x-2 group"
                       >
                         <span className="w-1 h-1 bg-blue-400 rounded-full group-hover:w-2 transition-all"></span>
@@ -1577,15 +1578,15 @@ const LandingPage = () => {
                     <span className="text-sm">Yaoundé, Cameroun</span>
                   </li>
                 </ul>
-                
+
                 {/* Newsletter */}
                 <div className="mt-4">
                   <h5 className="text-white text-sm font-semibold mb-2">Newsletter</h5>
                   <p className="text-gray-400 text-xs mb-3">Recevez nos actualités et offres exclusives</p>
                   <div className="flex">
-                    <input 
-                      type="email" 
-                      placeholder="Votre email" 
+                    <input
+                      type="email"
+                      placeholder="Votre email"
                       className="flex-1 px-3 py-2 text-sm bg-gray-800 border border-gray-700 rounded-l-lg focus:outline-none focus:border-blue-500 text-white placeholder-gray-500"
                     />
                     <button className="px-3 py-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white text-sm rounded-r-lg hover:shadow-lg transition-all">

@@ -5,7 +5,7 @@ const Accueil = () => {
   return (
     <div className="min-h-screen bg-red-100 p-8">
       <div className="max-w-4xl mx-auto bg-white rounded-lg shadow-md p-6">
-        <h1 className="text-3xl font-bold text-gray-800 mb-6">Bienvenue sur notre application d'assurance</h1>
+        <h1 className="text-3xl font-bold text-gray-800 mb-6">Bienvenue sur notre application de consultaion et prise de rendez-vous en ligne </h1>
         <p className="text-gray-600 mb-4">
           Cette application a été convertie pour utiliser des fichiers JSX pour une meilleure intégration avec React.
         </p>
