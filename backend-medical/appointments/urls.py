@@ -23,6 +23,7 @@ from .document_verification_views import DocumentVerifyView
 from .compte_rendu_pdf_views import PatientCompteRenduListView, CompteRenduPDFView
 from .prescription_pdf_views import PatientPrescriptionListView, PrescriptionPDFView
 from .alternative_doctors_view import AlternativeDoctorsView
+from .pdf_views import AppointmentReceiptPDFView 
 
 urlpatterns = [
     path('', AppointmentListCreateView.as_view(), name='appointment-list'),
@@ -65,5 +66,6 @@ urlpatterns = [
     path('prescriptions/<int:pk>/pdf/', PrescriptionPDFView.as_view(), name='prescription-pdf'),
 
     path('<int:pk>/alternative-doctors/', AlternativeDoctorsView.as_view(), name='alternative-doctors'),
+    path('<int:pk>/receipt/', AppointmentReceiptPDFView.as_view(), name='appointment-receipt'),
 ]
 

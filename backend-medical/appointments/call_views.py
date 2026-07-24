@@ -21,15 +21,30 @@ from .models import Appointment
 
 
 def _notify_user(user_id, payload):
-    """Envoie un événement temps réel à un utilisateur via son groupe personnel."""
-    channel_layer = get_channel_layer()
-    async_to_sync(channel_layer.group_send)(
-        f'notify_{user_id}',
-        {
-            'type': 'call_event',
-            'payload': payload,
-        }
-    )
+    """Envoie un événement temps réel ET persiste une notification si pertinent."""
+    from django.contrib.auth import get_user_model
+    from notifications.utils import notify_user
+
+    if payload.get('event') == 'call_started':
+        User = get_user_model()
+        try:
+            user = User.objects.get(id=user_id)
+            notify_user(
+                user=user,
+                type='call_started',
+                title='Appel démarré',
+                message=f"{payload.get('doctor_name', 'Votre médecin')} a démarré l'appel — rejoignez la consultation.",
+                link=f"/patient/consultation-video/{payload.get('appointment_id')}",
+            )
+        except User.DoesNotExist:
+            pass
+    else:
+        # Autres événements (ex: call_ended) — push temps réel seulement, pas persisté
+        channel_layer = get_channel_layer()
+        async_to_sync(channel_layer.group_send)(
+            f'notify_{user_id}',
+            {'type': 'call_event', 'payload': payload}
+        )
 
 
 class StartCallView(APIView):
@@ -43,17 +58,42 @@ class StartCallView(APIView):
     def post(self, request, pk):
         user = request.user
         if user.role != 'doctor':
-            return Response({'error': 'Réservé aux médecins.'}, status=status.HTTP_403_FORBIDDEN)
+            return Response(
+                {'error': 'Réservé aux médecins.'},
+                status=status.HTTP_403_FORBIDDEN
+            )
 
         try:
             doctor = user.doctor
         except Exception:
-            return Response({'error': 'Profil médecin introuvable.'}, status=status.HTTP_404_NOT_FOUND)
+            return Response(
+                {'error': 'Profil médecin introuvable.'},
+                status=status.HTTP_404_NOT_FOUND
+            )
 
         try:
             appointment = Appointment.objects.get(pk=pk, doctor=doctor)
         except Appointment.DoesNotExist:
-            return Response({'error': 'Rendez-vous introuvable ou non autorisé.'}, status=status.HTTP_404_NOT_FOUND)
+            return Response(
+                {'error': 'Rendez-vous introuvable ou non autorisé.'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        # ==========================
+        # Vérification du paiement
+        # ==========================
+        from payments.models import Payment
+
+        is_paid = Payment.objects.filter(
+            appointment=appointment,
+            status='completed'
+        ).exists()
+
+        if not is_paid:
+            return Response(
+                {'error': "Le patient n'a pas encore payé cette consultation."},
+                status=status.HTTP_402_PAYMENT_REQUIRED
+            )
 
         # Vérifier que c'est bien une consultation en ligne
         if appointment.type not in ('video', 'teleconsultation'):
@@ -64,9 +104,12 @@ class StartCallView(APIView):
 
         call_type = request.data.get('call_type', 'video')
         if call_type not in ('video', 'audio'):
-            return Response({'error': 'call_type doit être "video" ou "audio".'}, status=400)
+            return Response(
+                {'error': 'call_type doit être "video" ou "audio".'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
 
-        # Génère un nom de room imprévisible (UUID complet, pas juste l'ID du RDV)
+        # Génère un nom de room imprévisible
         room_name = f"mediconnect-{uuid.uuid4().hex}"
 
         appointment.call_type = call_type
@@ -75,14 +118,17 @@ class StartCallView(APIView):
         appointment.call_started_at = timezone.now()
         appointment.save()
 
-        # Notifie le patient en temps réel qu'un appel démarre
-        _notify_user(appointment.patient_id, {
-            'event': 'call_started',
-            'appointment_id': appointment.id,
-            'room_name': room_name,
-            'call_type': call_type,
-            'doctor_name': f"Dr. {doctor.user.first_name} {doctor.user.last_name}",
-        })
+        # Notifie le patient
+        _notify_user(
+            appointment.patient_id,
+            {
+                'event': 'call_started',
+                'appointment_id': appointment.id,
+                'room_name': room_name,
+                'call_type': call_type,
+                'doctor_name': f"Dr. {doctor.user.first_name} {doctor.user.last_name}",
+            }
+        )
 
         return Response({
             'room_name': room_name,

@@ -1,10 +1,15 @@
 import os
 from pathlib import Path
 from datetime import timedelta
+from dotenv import load_dotenv
+import os
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 BASE_DIR = Path(__file__).resolve().parent.parent
+load_dotenv(BASE_DIR / ".env")
 
 SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-change-this-in-production')
+FRONTEND_URL = 'http://localhost:3000'
 
 DEBUG = True
 
@@ -36,6 +41,7 @@ INSTALLED_APPS = [
     'dbbackup',
     'privacy',
     'search',
+    'notifications',
 ]
 
 
@@ -150,3 +156,26 @@ USE_TZ = True
 
 STATIC_URL = 'static/'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+
+
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+        },
+    },
+    'root': {
+        'handlers': ['console'],
+        'level': 'DEBUG',
+    },
+    'loggers': {
+        'appointments.pdf_views': {
+            'handlers': ['console'],
+            'level': 'DEBUG',
+            'propagate': True,
+        },
+    },
+}

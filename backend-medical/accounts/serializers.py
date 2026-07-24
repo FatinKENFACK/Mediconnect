@@ -1,9 +1,9 @@
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
 from django.contrib.auth.password_validation import validate_password
-from .models import Hospital, Service
+from .models import Hospital, Service, HospitalService
 
-
+from django.utils import timezone
 User = get_user_model()
 
 class PatientRegisterSerializer(serializers.ModelSerializer):
@@ -206,6 +206,28 @@ class HospitalProfileSerializer(serializers.ModelSerializer):
         from reviews.models import Review
         return Review.objects.filter(doctor__hospital=obj, status='approved').count()
 
+
+# accounts/serializers.py
+
+class HospitalServiceSerializer(serializers.ModelSerializer):
+    hospital_name = serializers.SerializerMethodField()
+    is_active_display = serializers.SerializerMethodField()
+
+    class Meta:
+        model = HospitalService
+        fields = [
+            'id', 'hospital', 'hospital_name', 'name', 'description',
+            'category', 'consultation_fee', 'duration',
+            'is_active', 'is_active_display', 'created_at', 'updated_at'
+        ]
+        read_only_fields = ['id', 'hospital', 'created_at', 'updated_at']
+
+    def get_hospital_name(self, obj):
+        return obj.hospital.name if obj.hospital else None
+
+    def get_is_active_display(self, obj):
+        return 'Actif' if obj.is_active else 'Inactif'
+
 # ///////////////////////////////////////////////////////
 
 class DoctorProfileSerializer(serializers.ModelSerializer):
@@ -317,3 +339,60 @@ class ServiceSerializer(serializers.ModelSerializer):
             'created_at', 'updated_at'
         ]
         read_only_fields = ['id', 'created_at', 'updated_at']
+
+# accounts/serializers.py
+
+# accounts/serializers.py
+
+from rest_framework import serializers
+from .models import Subscription, Hospital
+
+class SubscriptionSerializer(serializers.ModelSerializer):
+    plan_display = serializers.CharField(source='get_plan_display', read_only=True)
+    status_display = serializers.CharField(source='get_status_display', read_only=True)
+    billing_cycle_display = serializers.CharField(source='get_billing_cycle_display', read_only=True)
+    hospital_name = serializers.SerializerMethodField()
+    hospital_email = serializers.SerializerMethodField()
+    hospital_phone = serializers.SerializerMethodField()
+    hospital_city = serializers.SerializerMethodField()
+    is_active = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = Subscription
+        fields = [
+            'id', 
+            'hospital', 
+            'hospital_name',
+            'hospital_email',
+            'hospital_phone',
+            'hospital_city',
+            'plan', 
+            'plan_display', 
+            'price',
+            'status', 
+            'status_display', 
+            'billing_cycle', 
+            'billing_cycle_display',
+            'start_date', 
+            'end_date', 
+            'auto_renew', 
+            'is_active',
+            'created_at', 
+            'updated_at'
+        ]
+        read_only_fields = ['id', 'hospital', 'created_at', 'updated_at']
+
+    def get_hospital_name(self, obj):
+        return obj.hospital.name if obj.hospital else 'Hôpital inconnu'
+
+    def get_hospital_email(self, obj):
+        return obj.hospital.user.email if obj.hospital and obj.hospital.user else None
+
+    def get_hospital_phone(self, obj):
+        return obj.hospital.phone if obj.hospital else None
+
+    def get_hospital_city(self, obj):
+        return obj.hospital.city if obj.hospital else None
+
+    def get_is_active(self, obj):
+        return obj.status == 'active' and (not obj.end_date or obj.end_date >= timezone.now().date())

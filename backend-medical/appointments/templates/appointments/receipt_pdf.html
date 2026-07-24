@@ -1,0 +1,275 @@
+<!-- appointments/templates/appointments/receipt_pdf_weasy.html -->
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Justificatif de rendez-vous</title>
+    <style>
+        /* Styles de base */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Helvetica', 'Arial', sans-serif;
+            color: #333;
+            line-height: 1.6;
+            padding: 20px;
+        }
+        
+        /* Entête */
+        .header {
+            text-align: center;
+            border-bottom: 3px solid #0f766e;
+            padding-bottom: 25px;
+            margin-bottom: 30px;
+        }
+        
+        .header .hospital-name {
+            font-size: 22px;
+            font-weight: bold;
+            color: #1a202c;
+            margin-bottom: 5px;
+        }
+        
+        .header .hospital-details {
+            font-size: 12px;
+            color: #666;
+            margin-bottom: 15px;
+        }
+        
+        .header h1 {
+            color: #0f766e;
+            font-size: 24px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin: 10px 0 5px 0;
+        }
+        
+        .header .subtitle {
+            color: #666;
+            font-size: 14px;
+        }
+        
+        /* Contenu */
+        .content {
+            margin: 30px 0;
+        }
+        
+        .message-box {
+            background-color: #f0fff4;
+            border-left: 4px solid #48bb78;
+            padding: 15px 20px;
+            margin: 20px 0;
+            border-radius: 4px;
+        }
+        
+        .message-box strong {
+            color: #0f766e;
+            font-size: 16px;
+        }
+        
+        .message-box p {
+            margin-top: 5px;
+            font-size: 13px;
+        }
+        
+        /* Sections */
+        .section {
+            margin-bottom: 30px;
+        }
+        
+        .section-title {
+            font-size: 16px;
+            font-weight: bold;
+            color: #0f766e;
+            border-bottom: 1px solid #e2e8f0;
+            padding-bottom: 8px;
+            margin-bottom: 15px;
+        }
+        
+        /* Grille d'informations */
+        .info-grid {
+            display: table;
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        .info-row {
+            display: table-row;
+        }
+        
+        .info-label {
+            display: table-cell;
+            font-weight: bold;
+            color: #4a5568;
+            font-size: 12px;
+            padding: 6px 15px 6px 0;
+            width: 35%;
+            border-bottom: 1px solid #f7fafc;
+        }
+        
+        .info-value {
+            display: table-cell;
+            font-size: 13px;
+            padding: 6px 0;
+            border-bottom: 1px solid #f7fafc;
+        }
+        
+        /* Badge de statut */
+        .badge {
+            display: inline-block;
+            padding: 3px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: bold;
+            background-color: #48bb78;
+            color: white;
+        }
+        
+        /* Pied de page */
+        .footer {
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 1px solid #e2e8f0;
+            font-size: 11px;
+            color: #718096;
+            text-align: center;
+        }
+        
+        .footer .ref {
+            font-weight: bold;
+            color: #4a5568;
+        }
+        
+        .verification-note {
+            background-color: #f7fafc;
+            padding: 12px 15px;
+            border-radius: 5px;
+            margin: 20px 0;
+            font-size: 12px;
+            color: #4a5568;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <!-- Entête -->
+    <div class="header">
+        <div class="hospital-name">
+            {% if doctor.hospital %}
+                {{ doctor.hospital }}
+            {% else %}
+                Cabinet Médical
+            {% endif %}
+        </div>
+        <div class="hospital-details">
+            {% if doctor.hospital_address %}
+                {{ doctor.hospital_address }}<br>
+            {% endif %}
+            {% if doctor.hospital_phone %}
+                Tél: {{ doctor.hospital_phone }}
+            {% endif %}
+            {% if doctor.hospital_email %}
+                {{ doctor.hospital_email }}
+            {% endif %}
+        </div>
+        <h1>Justificatif de Rendez-vous</h1>
+        <div class="subtitle">Document officiel - À conserver</div>
+    </div>
+
+    <!-- Contenu -->
+    <div class="content">
+        <!-- Message de confirmation -->
+        <div class="message-box">
+            <strong>✓ Rendez-vous confirmé</strong>
+            <p>Ce document atteste que le rendez-vous suivant a été confirmé par le médecin.</p>
+        </div>
+
+        <!-- Informations du patient -->
+        <div class="section">
+            <div class="section-title">Informations du patient</div>
+            <div class="info-grid">
+                <div class="info-row">
+                    <div class="info-label">Nom complet</div>
+                    <div class="info-value">{{ patient.full_name }}</div>
+                </div>
+                <div class="info-row">
+                    <div class="info-label">Email</div>
+                    <div class="info-value">{{ patient.email }}</div>
+                </div>
+                <div class="info-row">
+                    <div class="info-label">Téléphone</div>
+                    <div class="info-value">{{ patient.phone }}</div>
+                </div>
+                <div class="info-row">
+                    <div class="info-label">Date de naissance</div>
+                    <div class="info-value">{{ patient.date_of_birth }}</div>
+                </div>
+                <div class="info-row">
+                    <div class="info-label">Genre</div>
+                    <div class="info-value">{{ patient.gender }}</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Informations du rendez-vous -->
+        <div class="section">
+            <div class="section-title">Informations du rendez-vous</div>
+            <div class="info-grid">
+                <div class="info-row">
+                    <div class="info-label">Médecin</div>
+                    <div class="info-value">{{ doctor.full_name }}</div>
+                </div>
+                <div class="info-row">
+                    <div class="info-label">Spécialité</div>
+                    <div class="info-value">{{ doctor.specialization }}</div>
+                </div>
+                <div class="info-row">
+                    <div class="info-label">Date</div>
+                    <div class="info-value">{{ date_formatted }}</div>
+                </div>
+                <div class="info-row">
+                    <div class="info-label">Heure</div>
+                    <div class="info-value">{{ time_formatted }}</div>
+                </div>
+                <div class="info-row">
+                    <div class="info-label">Type</div>
+                    <div class="info-value">Présentiel</div>
+                </div>
+                <div class="info-row">
+                    <div class="info-label">Statut</div>
+                    <div class="info-value"><span class="badge">Confirmé</span></div>
+                </div>
+                {% if appointment.reason and appointment.reason != 'Non précisé' %}
+                <div class="info-row">
+                    <div class="info-label">Motif</div>
+                    <div class="info-value">{{ appointment.reason }}</div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Informations de vérification -->
+        <div class="verification-note">
+            <strong>Document authentique</strong><br>
+            Ce justificatif a été généré le {{ generated_date }}.<br>
+            En cas de doute, vous pouvez contacter le secrétariat pour vérifier l'authenticité de ce document.
+        </div>
+    </div>
+
+    <!-- Pied de page -->
+    <div class="footer">
+        <p>Ce document est un justificatif officiel de rendez-vous médical.</p>
+        <p>En cas de besoin, vous pouvez contacter le secrétariat de l'établissement.</p>
+        <p style="margin-top: 10px; font-size: 10px; color: #a0aec0;">
+            Document généré automatiquement - {{ generated_date }}
+        </p>
+        <p style="margin-top: 5px; font-size: 10px; color: #a0aec0;">
+            Référence: <span class="ref">#{{ appointment_id }}</span>
+        </p>
+    </div>
+</body>
+</html>

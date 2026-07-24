@@ -22,13 +22,31 @@ class Payment(models.Model):
         ('other',        'Autre'),
     ]
 
-    hospital       = models.ForeignKey(
+    hospital = models.ForeignKey(
         Hospital,
         on_delete=models.CASCADE,
+        related_name='payments',
+        null=True, blank=True,
+    )
+
+    # NOUVEAU — pour les paiements de consultation par un patient
+    patient = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True, blank=True,
         related_name='payments'
     )
+    appointment = models.ForeignKey(
+        'appointments.Appointment',
+        on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name='payments'
+    )
+    campay_reference = models.CharField(max_length=100, blank=True)
+    phone_number = models.CharField(max_length=20, blank=True)
+
     # Lien optionnel vers l'abonnement
-    subscription   = models.ForeignKey(
+    subscription = models.ForeignKey(
         'accounts.Subscription',
         on_delete=models.SET_NULL,
         null=True, blank=True,

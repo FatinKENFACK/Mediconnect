@@ -16,6 +16,7 @@ urlpatterns = [
     path('api/backup/', include('backup.urls')),
     path('api/privacy/', include('privacy.urls')),
     path('api/search/', include('search.urls')),
+    path('api/notifications/', include('notifications.urls')),
 
     
 ]

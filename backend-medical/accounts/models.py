@@ -116,6 +116,36 @@ class Hospital(models.Model):
 
     def __str__(self):
         return self.name
+
+# accounts/models.py
+
+class HospitalService(models.Model):
+    hospital = models.ForeignKey(
+        'Hospital',
+        on_delete=models.CASCADE,
+        related_name='hopital_services'
+    )
+    name = models.CharField(max_length=200, help_text="Nom du service (ex: Cardiologie)")
+    description = models.TextField(blank=True)
+    category = models.CharField(max_length=100, blank=True)
+    consultation_fee = models.DecimalField(
+        max_digits=10, 
+        decimal_places=0,
+        default=0,
+        help_text="Tarif de consultation en XAF"
+    )
+    duration = models.CharField(max_length=50, default='30 min')
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-created_at']
+        verbose_name = "Service hospitalier"
+        verbose_name_plural = "Services hospitaliers"
+
+    def __str__(self):
+        return f"{self.name} - {self.hospital.name}"
     
 
 # ============================================================

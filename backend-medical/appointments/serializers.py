@@ -11,6 +11,7 @@ class AppointmentSerializer(serializers.ModelSerializer):
     # Infos médecin lisibles
     doctor_full_name = serializers.SerializerMethodField()
     doctor_specialization = serializers.SerializerMethodField()
+    is_paid = serializers.SerializerMethodField()
 
     class Meta:
         model = Appointment
@@ -20,12 +21,12 @@ class AppointmentSerializer(serializers.ModelSerializer):
             'date', 'time', 'type', 'reason', 'status', 'created_at',
             'call_type', 'call_status', 'call_room_name',
             'call_started_at', 'call_ended_at', 'preferred_call_type',
-            'verification_token', 'checked_in_at',
+            'verification_token', 'checked_in_at', 'is_paid',
         ]
         read_only_fields = [
             'id', 'status', 'created_at',
             'call_status', 'call_room_name', 'call_started_at', 'call_ended_at',
-            'verification_token', 'checked_in_at',
+            'verification_token', 'checked_in_at', 'is_paid',
         ]
     def get_patient_name(self, obj):
         return f"{obj.patient.first_name} {obj.patient.last_name}"
@@ -39,6 +40,10 @@ class AppointmentSerializer(serializers.ModelSerializer):
         if obj.doctor:
             return obj.doctor.specialization
         return obj.doctor_specialty
+
+    def get_is_paid(self, obj):
+        from payments.models import Payment
+        return Payment.objects.filter(appointment=obj, status='completed').exists()
     
 class DoctorAvailabilitySerializer(serializers.ModelSerializer):
     day_label = serializers.CharField(source='get_day_of_week_display', read_only=True)
